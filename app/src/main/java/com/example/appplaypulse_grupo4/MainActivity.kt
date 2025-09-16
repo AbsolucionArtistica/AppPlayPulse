@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.appplaypulse_grupo4.ui.theme.AppPlayPulse_Grupo4Theme
+import com.example.appplaypulse_grupo4.ui.theme.HomeScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -19,12 +20,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             AppPlayPulse_Grupo4Theme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Greeting(
                         name = "Duoc, Vicente Candia, Agustin Bahamondes y Fernanda Figueroa",
-                        modifier = Modifier.padding(innerPadding)
                     )
-                }
+                    HomeScreen()
             }
         }
     }
