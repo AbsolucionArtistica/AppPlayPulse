@@ -52,6 +52,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
+    implementation("javax.inject:javax.inject:1")
     kapt(libs.room.compiler)
     testImplementation(libs.room.testing)
     testImplementation(libs.junit)
