@@ -2,6 +2,7 @@ package com.example.appplaypulse_grupo4.database.dao
 
 import androidx.room.*
 import com.example.appplaypulse_grupo4.database.entity.User
+import com.example.appplaypulse_grupo4.database.dto.UserSummary
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -54,5 +55,5 @@ interface UserDao {
     suspend fun getUsersAboveScore(minScore: Int): List<User>
     
     @Query("SELECT username, highScore, level FROM users ORDER BY createdAt DESC LIMIT :limit")
-    suspend fun getRecentUsers(limit: Int): List<User>
+    suspend fun getRecentUsers(limit: Int): List<UserSummary>
 }

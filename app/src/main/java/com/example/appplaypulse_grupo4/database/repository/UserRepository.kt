@@ -1,6 +1,7 @@
 package com.example.appplaypulse_grupo4.database.repository
 
 import com.example.appplaypulse_grupo4.database.dao.UserDao
+import com.example.appplaypulse_grupo4.database.dto.UserSummary
 import com.example.appplaypulse_grupo4.database.entity.User
 import com.example.appplaypulse_grupo4.security.DatabaseSecurityGuidelines
 import kotlinx.coroutines.flow.Flow
@@ -96,5 +97,10 @@ class UserRepository @Inject constructor(
             return emptyList() // Prevent too broad searches
         }
         return userDao.getUsersByUsernamePattern("%$safePattern%")
+    }
+
+    // New: recent users projection
+    suspend fun getRecentUserSummaries(limit: Int): List<UserSummary> {
+        return userDao.getRecentUsers(limit)
     }
 }
