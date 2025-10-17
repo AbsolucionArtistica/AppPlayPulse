@@ -16,6 +16,7 @@ import com.example.appplaypulse_grupo4.ui.theme.AppPlayPulse_Grupo4Theme
 import com.example.appplaypulse_grupo4.ui.theme.HomeScreen
 import com.example.appplaypulse_grupo4.database.DatabaseHelper
 import com.viewmodel.MainViewModel
+import com.example.appplaypulse_grupo4.ui.components.AnimatedSideMenu
 
 class MainActivity : ComponentActivity() {
     
@@ -34,10 +35,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             AppPlayPulse_Grupo4Theme {
                 val viewModel: MainViewModel = viewModel()
-                Greeting(
-                    name = "Duoc, Vicente Candia, Agustin Bahamondes y Fernanda Figueroa",
-                )
-                HomeScreen()
+                AnimatedSideMenu()
+
             }
         }
     }
