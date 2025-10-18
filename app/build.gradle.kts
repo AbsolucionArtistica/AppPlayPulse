@@ -50,6 +50,8 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    // libphonenumber for robust phone parsing/normalization
+    implementation("com.googlecode.libphonenumber:libphonenumber:8.13.18")
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     implementation("javax.inject:javax.inject:1")
