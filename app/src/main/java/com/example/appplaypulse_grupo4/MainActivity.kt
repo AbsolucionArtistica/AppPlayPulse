@@ -1,5 +1,6 @@
 package com.example.appplaypulse_grupo4
 
+import android.content.Context
 import android.os.Bundle
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
@@ -28,15 +29,15 @@ import com.example.appplaypulse_grupo4.ui.components.AnimatedSideMenu
 import com.example.appplaypulse_grupo4.ui.screens.FriendsMockupScreen
 
 class MainActivity : ComponentActivity() {
-    
+
     private lateinit var databaseHelper: DatabaseHelper
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         // Initialize database helper
         databaseHelper = DatabaseHelper(this)
-        
+
         enableEdgeToEdge()
         setContent {
             AppPlayPulse_Grupo4Theme {
@@ -71,6 +72,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun FriendsMockupScreen(onClose: () -> Unit) {
+    val ctx = LocalContext.current
     var input by remember { mutableStateOf("") }
     var showList by remember { mutableStateOf(false) }
     val prefsKey = "friends_list"
@@ -86,11 +88,11 @@ fun FriendsMockupScreen(onClose: () -> Unit) {
 
         Button(onClick = {
             if (input.isNotBlank()) {
-                saveFriend(LocalContext.current, input)
-                Toast.makeText(LocalContext.current, "Amigo guardado", Toast.LENGTH_SHORT).show()
+                saveFriend(ctx, input)
+                Toast.makeText(ctx, "Amigo guardado", Toast.LENGTH_SHORT).show()
                 input = ""
             } else {
-                Toast.makeText(LocalContext.current, "Ingresa un nombre", Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, "Ingresa un nombre", Toast.LENGTH_SHORT).show()
             }
         }) {
             Text("Agregar amigo")
@@ -105,7 +107,7 @@ fun FriendsMockupScreen(onClose: () -> Unit) {
         Spacer(modifier = Modifier.height(12.dp))
 
         if (showList) {
-            val list = loadFriends(context)
+            val list = loadFriends(ctx)
             if (list.isEmpty()) {
                 Text("No hay amigos guardados")
             } else {

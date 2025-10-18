@@ -20,7 +20,6 @@ import org.json.JSONArray
 
 
 @Composable
-@Composable
 fun FriendsMockupScreen(onClose: () -> Unit) {
     val ctx = LocalContext.current
     var input by remember { mutableStateOf("") }
