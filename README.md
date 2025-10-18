@@ -3,53 +3,71 @@
 AppPlayPulse es una aplicación Android que permite a los usuarios ver y comparar estadísticas de juegos con sus amigos.  
 Con esta app, puedes acceder a tus datos de juego, revisar cómo están rindiendo tus amigos y hacer comparaciones para mejorar juntos.
 
-##  Funcionalidades principales
+## Funcionalidades principales
 
 - Visualización de estadísticas de juegos personales.  
 - Comparación de tus datos con los de tus amigos.  
 - Interfaz sencilla y amigable para seguir el rendimiento en diferentes juegos.  
 - Actualización en tiempo real de las estadísticas compartidas.  
 
-##  Información adicional
+## Información adicional
 
 Los commits hechos por **CETECOM** son realizados por los estudiantes:  
 **Agustín Bahamondes**, **Vicente Candia** y **Fernanda Figueroa**, desde los PC de **DuocUC**.
 
 ---
 
-##  Cambios recientes 
+## Cambios recientes
 
-Breve resumen de los cambios aplicados durante esta sesión:
+### `FriendsMockupScreen.kt`
+Nueva y completa implementación del mockup de amigos:
+- Modelo `FriendData(name, phone)`.  
+- UI con **TextField**, botones **“Importar contactos”**, **“Agregar amigo”** y **“Mostrar lista”**.  
+- Importación de contactos con **diálogo de selección (checkboxes)** y botón “Agregar seleccionados”.  
+- Detección y eliminación de duplicados por teléfono con normalización básica (mantiene dígitos y “+”).  
+- `queryContacts(...)` reforzado: manejo de nulls, índices y `try/catch` para evitar crashes.  
+- Uso de `LazyColumn` con altura limitada para evitar bloqueos con listas grandes.  
+- Manejo de permisos en runtime y diálogo para abrir ajustes si se niega permanentemente.  
+- Persistencia con `SharedPreferences` en JSON (`friends_list_json`) y **migración automática** desde formato antiguo.
 
-- Se agregó una entrada **"Amigos"** en el menú lateral (`AnimatedSideMenu`) que abre un mockup de sistema de amigos.  
-- Se creó **`FriendsMockupScreen`** en `app/src/main/java/com/example/appplaypulse_grupo4/ui/screens/FriendsMockupScreen.kt`:  
-  - Permite ingresar nombres, guardarlos localmente en `SharedPreferences` como JSON y mostrarlos en una `LazyColumn`.  
-  - Incluye un `@Preview` para revisión rápida en Android Studio.  
-- Se mejoró el manejo de `Context` en Composables usando `LocalContext.current` para evitar referencias directas a la `Activity`.  
-- Archivos modificados:  
-  - `AnimatedSideMenu.kt`  
-  - `MainActivity.kt`  
-  - `ui/screens/FriendsMockupScreen.kt`  
+### Otros archivos
+- **`build.gradle.kts`** → se añadió dependencia opcional:  
+  `com.googlecode.libphonenumber:libphonenumber:8.13.18`  
+  *(la app incluye un fallback para compilar incluso sin esta librería).*  
+- **`AndroidManifest.xml`** → añadido permiso `READ_CONTACTS`.  
+- **`AnimatedSideMenu.kt` / `MainActivity.kt`** → integración de la nueva pantalla **“Amigos”**.  
+- **`README.md`** → actualizado con documentación resumida de estos cambios.
 
->  Nota: Estos cambios corresponden a un mockup funcional y **no implementan aún un sistema completo de amigos ni integración de red.**
+---
+
+## Motivos y mejoras principales
+
+- **Robustez:** validaciones extra y manejo de excepciones para evitar crashes en distintos dispositivos/OEM.  
+- **Escalabilidad:** `LazyColumn` optimizada para listas grandes.  
+- **Persistencia segura:** migración automática sin pérdida de datos.  
+- **Privacidad:** flujo de permisos claro, con opción de abrir ajustes si el usuario lo niega.  
+- **Normalización:** librería `libphonenumber` disponible (opcional) para dedupe avanzado.  
 
 ---
 
-##  Notas técnicas adicionales
+## Cómo probar
 
-- **Permisos:**  
-  Prueba esta funcionalidad en un dispositivo real. Algunos emuladores no poseen contactos; si usas uno, crea contactos manualmente en el AVD.  
-
-- **Seguridad / Privacidad:**  
-  Los contactos se guardan únicamente de forma local. Si en el futuro se agregan funciones de carga o sincronización, debe solicitarse consentimiento explícito al usuario.  
-
-- **Selección de contactos:**  
-  Actualmente la interfaz añade todos los contactos con el botón **“Agregar todos”**. Puede implementarse selección individual (checkboxes) en futuras versiones.  
-
-- **Duplicados:**  
-  El sistema evita duplicados por nombre usando una verificación `contains`, aunque se recomienda mejorar la lógica comparando números de teléfono o aplicando normalización.  
-
-- **Compatibilidad:**  
-  Usa APIs estándar de `ContactsContract` y funciona correctamente en **API 24+** (coincide con `minSdk 24` del proyecto).  
+1. Abrir el proyecto en **Android Studio**.  
+2. Sincronizar dependencias (**Sync Project with Gradle Files**).  
+3. Ejecutar en un **dispositivo real** o emulador con contactos creados.  
+4. En la app:
+   - Abrir el menú lateral → **“Amigos”**.  
+   - Añadir un amigo manualmente o importar contactos.  
+   - Conceder permisos cuando se soliciten.  
+   - Verificar que no se añaden duplicados y que los datos persisten al reiniciar la app.  
+5. Negar permisos para comprobar el diálogo de apertura de ajustes.  
 
 ---
+
+## Recomendaciones futuras
+
+- Activar uso directo de **libphonenumber** para normalización E.164.  
+- Usar región del dispositivo para dedupe más preciso.  
+- Migrar persistencia a **Room** (consultas rápidas y operaciones por lotes).  
+- Procesar contactos en background para mejorar rendimiento.  
+- Añadir **tests unitarios e instrumentados** (normalización, migración y permisos).  
