@@ -39,9 +39,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import android.provider.ContactsContract
-import com.google.i18n.phonenumbers.PhoneNumberUtil
-import com.google.i18n.phonenumbers.NumberParseException
-import com.google.i18n.phonenumbers.PhoneNumberUtil.PhoneNumberFormat
 import android.content.pm.PackageManager
 import androidx.compose.ui.tooling.preview.Preview
 import org.json.JSONObject
@@ -57,13 +54,8 @@ fun normalizeName(input: String): String {
 }
 
 fun normalizePhone(raw: String, defaultRegion: String = "US"): String {
-    val phoneUtil = PhoneNumberUtil.getInstance()
-    return try {
-        val number = phoneUtil.parse(raw, defaultRegion)
-        if (phoneUtil.isValidNumber(number)) phoneUtil.format(number, PhoneNumberFormat.E164) else raw.filter { it.isDigit() }
-    } catch (e: NumberParseException) {
-        raw.filter { it.isDigit() }
-    }
+    val digits = raw.filter { it.isDigit() }
+    return if (raw.trim().startsWith("+")) "+$digits" else digits
 }
 
 fun getDeviceRegion(context: Context): String {
