@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -20,7 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun AnimatedSideMenu() {
+fun AnimatedSideMenu(onFriendsClick: (() -> Unit)? = null) {
     var isOpen by remember { mutableStateOf(false) }
 
     // Animación del ancho del menú
@@ -66,6 +67,9 @@ fun AnimatedSideMenu() {
                     MenuItem("Man")
                     MenuItem("Releases")
                     MenuItem("Stores")
+                    MenuItem("Amigos") {
+                        onFriendsClick?.invoke()
+                    }
                 }
             }
         }
@@ -73,12 +77,14 @@ fun AnimatedSideMenu() {
 }
 
 @Composable
-fun MenuItem(title: String) {
+fun MenuItem(title: String, onClick: (() -> Unit)? = null) {
     Text(
         text = title,
         color = Color.Black, // Texto negro
         fontSize = 20.sp,
         fontWeight = FontWeight.Medium,
-        modifier = Modifier.padding(start = 8.dp)
+        modifier = Modifier
+            .padding(start = 8.dp)
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
     )
 }
