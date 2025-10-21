@@ -1,20 +1,15 @@
 package com.example.appplaypulse_grupo4
 
-import android.content.Context
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.appplaypulse_grupo4.database.DatabaseHelper
 import com.example.appplaypulse_grupo4.ui.components.AnimatedSideMenu
@@ -33,6 +28,7 @@ class MainActivity : ComponentActivity() {
         databaseHelper = DatabaseHelper(this)
 
         enableEdgeToEdge()
+
         setContent {
             AppPlayPulse_Grupo4Theme {
                 val viewModel: MainViewModel = viewModel()
@@ -47,40 +43,22 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                             .padding(innerPadding)
                     ) {
-                        // 🏠 Inicio
+                        // 🏠 Pantalla principal
                         if (!showFriends && !showGames) {
                             HomeScreen()
                         }
 
-                        // 🎮 Juegos
+                        // 🎮 Pantalla de juegos
                         if (showGames) {
                             GameManagerScreen()
                         }
 
-
-                        // 🤝 Amigos
+                        // 🤝 Pantalla de amigos (a pantalla completa)
                         if (showFriends) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color(0xAA000000))
-                                    .align(Alignment.Center)
-                                    .padding(24.dp)
-                            ) {
-                                Surface(
-                                    shape = MaterialTheme.shapes.medium,
-                                    tonalElevation = 4.dp,
-                                    color = Color.White,
-                                    modifier = Modifier
-                                        .align(Alignment.Center)
-                                        .padding(16.dp)
-                                ) {
-                                    FriendsMockupScreen(onClose = { showFriends = false })
-                                }
-                            }
+                            FriendsMockupScreen(onClose = { showFriends = false })
                         }
 
-                        // 📋 Menú lateral
+                        // 📋 Menú lateral animado
                         AnimatedSideMenu(
                             onHomeClick = {
                                 showFriends = false

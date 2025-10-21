@@ -16,35 +16,48 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.appplaypulse_grupo4.R
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameManagerScreen() {
     val gameList = remember { mutableStateListOf<Game>() }
     var showDialog by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // 📜 Lista de juegos
-        GameListScreen(gameList)
-
-        // ➕ Botón flotante abajo a la izquierda
-        FloatingActionButton(
-            onClick = { showDialog = true },
+    Scaffold(
+        topBar = { TopNavBar(title = "PlayPulse") } // 🔹 Llama al mismo nav
+    ) { innerPadding ->
+        Box(
             modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(24.dp),
-            containerColor = MaterialTheme.colorScheme.primary
+                .fillMaxSize()
+                .padding(innerPadding)
         ) {
-            Icon(Icons.Default.Add, contentDescription = "Agregar juego", tint = MaterialTheme.colorScheme.onPrimary)
-        }
+            // 📜 Lista de juegos
+            GameListScreen(gameList)
 
-        // 🪟 Dialogo para agregar juegos
-        if (showDialog) {
-            AddGameDialog(
-                onDismiss = { showDialog = false },
-                onAddGame = { newGame ->
-                    gameList.add(newGame)
-                    showDialog = false
-                }
-            )
+            // ➕ Botón flotante abajo a la izquierda
+            FloatingActionButton(
+                onClick = { showDialog = true },
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(24.dp),
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Agregar juego",
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+
+            // 🪟 Diálogo para agregar juegos
+            if (showDialog) {
+                AddGameDialog(
+                    onDismiss = { showDialog = false },
+                    onAddGame = { newGame ->
+                        gameList.add(newGame)
+                        showDialog = false
+                    }
+                )
+            }
         }
     }
 }
@@ -52,14 +65,13 @@ fun GameManagerScreen() {
 // 🧩 Datos del juego
 data class Game(val name: String, val imageRes: Int)
 
-
 // 🪟 Cuadro para buscar/agregar juego
 @Composable
 fun AddGameDialog(onDismiss: () -> Unit, onAddGame: (Game) -> Unit) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedGame by remember { mutableStateOf<Game?>(null) }
 
-    // 🎮 Base de datos simulada de juegos
+    // 🎮 Base de datos simulada
     val gameDatabase = listOf(
         Game("Apex Legends", R.drawable.apex),
         Game("Magic Arena", R.drawable.arena),
@@ -86,14 +98,14 @@ fun AddGameDialog(onDismiss: () -> Unit, onAddGame: (Game) -> Unit) {
                 )
 
                 // 👁️ Vista previa del juego
-                if (selectedGame != null) {
+                selectedGame?.let { game ->
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Image(
-                            painter = painterResource(id = selectedGame!!.imageRes),
-                            contentDescription = selectedGame!!.name,
+                            painter = painterResource(id = game.imageRes),
+                            contentDescription = game.name,
                             modifier = Modifier
                                 .height(150.dp)
                                 .fillMaxWidth()
@@ -101,7 +113,7 @@ fun AddGameDialog(onDismiss: () -> Unit, onAddGame: (Game) -> Unit) {
                                 .background(MaterialTheme.colorScheme.surfaceVariant),
                             contentScale = ContentScale.Crop
                         )
-                        Text(selectedGame!!.name, style = MaterialTheme.typography.titleMedium)
+                        Text(game.name, style = MaterialTheme.typography.titleMedium)
                     }
                 }
             }
@@ -123,7 +135,6 @@ fun AddGameDialog(onDismiss: () -> Unit, onAddGame: (Game) -> Unit) {
         }
     )
 }
-
 
 // 📜 Lista de juegos guardados
 @Composable
