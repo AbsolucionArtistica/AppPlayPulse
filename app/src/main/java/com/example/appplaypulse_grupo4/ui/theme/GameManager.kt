@@ -1,54 +1,158 @@
 package com.example.appplaypulse_grupo4.ui.theme
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.example.appplaypulse_grupo4.R
 
 @Composable
-fun GameInputScreen(gameList: MutableList<String>) {
-    var gameName by remember { mutableStateOf("") }
+fun GameManagerScreen() {
+    val gameList = remember { mutableStateListOf<Game>() }
+    var showDialog by remember { mutableStateOf(false) }
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        BasicTextField(
-            value = gameName,
-            onValueChange = { gameName = it },
+    Box(modifier = Modifier.fillMaxSize()) {
+        // 📜 Lista de juegos
+        GameListScreen(gameList)
+
+        // ➕ Botón flotante abajo a la izquierda
+        FloatingActionButton(
+            onClick = { showDialog = true },
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            decorationBox = { innerTextField ->
-                Box(Modifier.padding(8.dp)) {
-                    if (gameName.isEmpty()) {
-                        Text("Ingresa el nombre del juego")
-                    }
-                    innerTextField()
-                }
-            }
-        )
-        Button(
-            onClick = {
-                if (gameName.isNotBlank()) {
-                    gameList.add(gameName)
-                    gameName = ""
-                }
-            }
+                .align(Alignment.BottomStart)
+                .padding(24.dp),
+            containerColor = MaterialTheme.colorScheme.primary
         ) {
-            Text("Agregar juego")
+            Icon(Icons.Default.Add, contentDescription = "Agregar juego", tint = MaterialTheme.colorScheme.onPrimary)
+        }
+
+        // 🪟 Dialogo para agregar juegos
+        if (showDialog) {
+            AddGameDialog(
+                onDismiss = { showDialog = false },
+                onAddGame = { newGame ->
+                    gameList.add(newGame)
+                    showDialog = false
+                }
+            )
         }
     }
 }
 
+// 🧩 Datos del juego
+data class Game(val name: String, val imageRes: Int)
+
+
+// 🪟 Cuadro para buscar/agregar juego
 @Composable
-fun GameListScreen(gameList: List<String>) {
+fun AddGameDialog(onDismiss: () -> Unit, onAddGame: (Game) -> Unit) {
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedGame by remember { mutableStateOf<Game?>(null) }
+
+    // 🎮 Base de datos simulada de juegos
+    val gameDatabase = listOf(
+        Game("Apex Legends", R.drawable.apex),
+        Game("Magic Arena", R.drawable.arena),
+        Game("Final Fantasy XIV", R.drawable.finalfantasy),
+        Game("League of Legends", R.drawable.lol),
+        Game("Minecraft", R.drawable.minecraft)
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Agregar juego") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { query ->
+                        searchQuery = query
+                        selectedGame = gameDatabase.find {
+                            it.name.contains(query, ignoreCase = true)
+                        }
+                    },
+                    label = { Text("Buscar juego") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // 👁️ Vista previa del juego
+                if (selectedGame != null) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Image(
+                            painter = painterResource(id = selectedGame!!.imageRes),
+                            contentDescription = selectedGame!!.name,
+                            modifier = Modifier
+                                .height(150.dp)
+                                .fillMaxWidth()
+                                .clip(MaterialTheme.shapes.medium)
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentScale = ContentScale.Crop
+                        )
+                        Text(selectedGame!!.name, style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    selectedGame?.let { onAddGame(it) }
+                },
+                enabled = selectedGame != null
+            ) {
+                Text("Agregar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
+}
+
+
+// 📜 Lista de juegos guardados
+@Composable
+fun GameListScreen(gameList: List<Game>) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier.fillMaxWidth()
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
     ) {
         Text("Tus juegos:", style = MaterialTheme.typography.titleMedium)
-        for ((index, game) in gameList.withIndex()) {
-            Text("${index + 1}. $game")
+
+        if (gameList.isEmpty()) {
+            Text("No hay juegos agregados aún.")
+        } else {
+            gameList.forEach { game ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(id = game.imageRes),
+                        contentDescription = game.name,
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(game.name, style = MaterialTheme.typography.bodyLarge)
+                }
+            }
         }
     }
 }

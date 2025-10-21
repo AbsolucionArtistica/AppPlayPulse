@@ -16,26 +16,69 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 @Composable
-fun AnimatedSideMenu(onFriendsClick: (() -> Unit)? = null) {
+fun AnimatedSideMenu(
+    onHomeClick: (() -> Unit)? = null,
+    onGamesClick: (() -> Unit)? = null,
+    onFriendsClick: (() -> Unit)? = null
+) {
     var isOpen by remember { mutableStateOf(false) }
+    val menuWidth = 220.dp
 
-    // Animación del ancho del menú
-    val menuWidth by animateDpAsState(
-        targetValue = if (isOpen) 250.dp else 60.dp,
-        animationSpec = tween(durationMillis = 600)
+    val offsetX by animateDpAsState(
+        targetValue = if (isOpen) 0.dp else -menuWidth,
+        animationSpec = tween(durationMillis = 400),
+        label = "menuSlide"
     )
 
-    Box(
-        modifier = Modifier
-            .fillMaxHeight()
-            .width(menuWidth)
-            .background(Color.White) // Fondo blanco
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Fondo oscuro cuando el menú está abierto
+        if (isOpen) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0x55000000))
+                    .clickable { isOpen = false }
+            )
+        }
+
+        // Panel lateral animado
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(menuWidth)
+                .offset(x = offsetX)
+                .background(Color(0xFFEEF1F5))
+        ) {
+            AnimatedVisibility(
+                visible = isOpen,
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 16.dp, top = 80.dp)
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    MenuItem("Inicio") {
+                        isOpen = false
+                        onHomeClick?.invoke()
+                    }
+                    MenuItem("Juegos") {
+                        isOpen = false
+                        onGamesClick?.invoke()
+                    }
+                    MenuItem("Stores")
+                    MenuItem("Amigos") {
+                        isOpen = false
+                        onFriendsClick?.invoke()
+                    }
+                }
+            }
+        }
+
         // Botón hamburguesa / cerrar
         IconButton(
             onClick = { isOpen = !isOpen },
@@ -46,45 +89,21 @@ fun AnimatedSideMenu(onFriendsClick: (() -> Unit)? = null) {
             Icon(
                 imageVector = if (isOpen) Icons.Default.Close else Icons.Default.Menu,
                 contentDescription = "Toggle menu",
-                tint = Color.Black, // Líneas negras
+                tint = Color.Black,
                 modifier = Modifier.size(32.dp)
             )
-        }
-
-        // Contenido del menú animado
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .padding(start = 16.dp, top = 80.dp)
-        ) {
-            AnimatedVisibility(visible = isOpen) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalAlignment = Alignment.Start
-                ) {
-                    MenuItem("New Arrivals")
-                    MenuItem("Woman")
-                    MenuItem("Man")
-                    MenuItem("Releases")
-                    MenuItem("Stores")
-                    MenuItem("Amigos") {
-                        onFriendsClick?.invoke()
-                    }
-                }
-            }
         }
     }
 }
 
 @Composable
-fun MenuItem(title: String, onClick: (() -> Unit)? = null) {
+fun MenuItem(text: String, onClick: (() -> Unit)? = null) {
     Text(
-        text = title,
-        color = Color.Black, // Texto negro
-        fontSize = 20.sp,
-        fontWeight = FontWeight.Medium,
+        text = text,
+        color = Color.Black,
         modifier = Modifier
-            .padding(start = 8.dp)
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .clickable { onClick?.invoke() }
     )
 }
