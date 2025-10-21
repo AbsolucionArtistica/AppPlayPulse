@@ -47,16 +47,16 @@ fun HomeScreen() {
         ),
     )
 
-    val scrollState = rememberScrollState() // 👈 Control del scroll
+    val scrollState = rememberScrollState() //  Control del scroll
 
     Scaffold(
-        topBar = { TopNavBar(title = "PlayPulse") } // ✅ Corrección aquí
+        topBar = { TopNavBar(title = "PlayPulse") } //  Corrección aquí
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-                .verticalScroll(scrollState) // 👈 Permite desplazamiento
+                .verticalScroll(scrollState) //  Permite desplazamiento
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
@@ -80,7 +80,7 @@ fun HomeScreen() {
     }
 }
 
-// 🔹 Modelo de datos
+//  Modelo de datos
 data class Friend(
     val name: String,
     val profileRes: Int,
@@ -89,7 +89,7 @@ data class Friend(
     val hours: String
 )
 
-// 🔹 Tarjeta de amigo con juego
+//  Tarjeta de amigo con juego
 @Composable
 fun FriendCard(friend: Friend) {
     Column(

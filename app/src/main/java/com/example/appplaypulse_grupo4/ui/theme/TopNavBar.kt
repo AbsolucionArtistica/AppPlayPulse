@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.Box
 fun TopNavBar(title: String = "PlayPulse") {
     TopAppBar(
         title = {
-            // 📌 Centrado del texto
+            //  Centrado del texto
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
@@ -29,7 +29,7 @@ fun TopNavBar(title: String = "PlayPulse") {
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color(0xFF4DD0E1) // 💠 Cyan claro
+            containerColor = Color(0xFF4DD0E1) //  Cyan claro
         )
     )
 }

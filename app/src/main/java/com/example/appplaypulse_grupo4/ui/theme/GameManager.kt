@@ -23,17 +23,17 @@ fun GameManagerScreen() {
     var showDialog by remember { mutableStateOf(false) }
 
     Scaffold(
-        topBar = { TopNavBar(title = "PlayPulse") } // 🔹 Llama al mismo nav
+        topBar = { TopNavBar(title = "PlayPulse") } //  Llama al mismo nav
     ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // 📜 Lista de juegos
+            //  Lista de juegos
             GameListScreen(gameList)
 
-            // ➕ Botón flotante abajo a la izquierda
+            //  Botón flotante abajo a la izquierda
             FloatingActionButton(
                 onClick = { showDialog = true },
                 modifier = Modifier
@@ -48,7 +48,7 @@ fun GameManagerScreen() {
                 )
             }
 
-            // 🪟 Diálogo para agregar juegos
+            //  Diálogo para agregar juegos
             if (showDialog) {
                 AddGameDialog(
                     onDismiss = { showDialog = false },
@@ -62,16 +62,16 @@ fun GameManagerScreen() {
     }
 }
 
-// 🧩 Datos del juego
+//  Datos del juego
 data class Game(val name: String, val imageRes: Int)
 
-// 🪟 Cuadro para buscar/agregar juego
+//  Cuadro para buscar/agregar juego
 @Composable
 fun AddGameDialog(onDismiss: () -> Unit, onAddGame: (Game) -> Unit) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedGame by remember { mutableStateOf<Game?>(null) }
 
-    // 🎮 Base de datos simulada
+    //  Base de datos simulada
     val gameDatabase = listOf(
         Game("Apex Legends", R.drawable.apex),
         Game("Magic Arena", R.drawable.arena),
@@ -97,7 +97,7 @@ fun AddGameDialog(onDismiss: () -> Unit, onAddGame: (Game) -> Unit) {
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // 👁️ Vista previa del juego
+                //  Vista previa del juego
                 selectedGame?.let { game ->
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -136,7 +136,7 @@ fun AddGameDialog(onDismiss: () -> Unit, onAddGame: (Game) -> Unit) {
     )
 }
 
-// 📜 Lista de juegos guardados
+//  Lista de juegos guardados
 @Composable
 fun GameListScreen(gameList: List<Game>) {
     Column(

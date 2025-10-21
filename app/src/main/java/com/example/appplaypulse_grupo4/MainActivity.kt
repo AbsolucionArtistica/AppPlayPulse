@@ -43,22 +43,22 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                             .padding(innerPadding)
                     ) {
-                        // 🏠 Pantalla principal
+                        //  Pantalla principal
                         if (!showFriends && !showGames) {
                             HomeScreen()
                         }
 
-                        // 🎮 Pantalla de juegos
+                        //  Pantalla de juegos
                         if (showGames) {
                             GameManagerScreen()
                         }
 
-                        // 🤝 Pantalla de amigos (a pantalla completa)
+                        //  Pantalla de amigos (a pantalla completa)
                         if (showFriends) {
                             FriendsMockupScreen(onClose = { showFriends = false })
                         }
 
-                        // 📋 Menú lateral animado
+                        //  Menú lateral animado
                         AnimatedSideMenu(
                             onHomeClick = {
                                 showFriends = false
