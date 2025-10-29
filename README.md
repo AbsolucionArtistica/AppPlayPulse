@@ -13,7 +13,7 @@ Con esta app, puedes acceder a tus datos de juego, revisar cómo están rindiend
 ## Información adicional
 
 Los commits hechos por **CETECOM** son realizados por los estudiantes:  
-**Agustín Bahamondes**, **Vicente Candia** y **Fernanda Figueroa**,**Diego Bahamondez**, desde los PC de **DuocUC**.
+**Agustín Bahamondes**,**Diego Bahamondez**, **Vicente Candia** y **Fernanda Figueroa** desde los PC de **DuocUC**.
 
 ---
 
