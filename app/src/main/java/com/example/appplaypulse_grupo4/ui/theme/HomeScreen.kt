@@ -47,7 +47,7 @@ fun HomeScreen() {
         ),
         Friend(
                 name = "Eth3rn4l",
-        profileRes = R.drawable.agua,
+        profileRes = R.drawable.Et3rn4l,
         gameName = "New World Aeternum",
         gameImageRes = R.drawable.nw,
         hours = "3200 horas jugadas"
