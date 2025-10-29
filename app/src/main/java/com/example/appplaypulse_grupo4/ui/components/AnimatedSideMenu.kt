@@ -22,7 +22,8 @@ import androidx.compose.ui.unit.dp
 fun AnimatedSideMenu(
     onHomeClick: (() -> Unit)? = null,
     onGamesClick: (() -> Unit)? = null,
-    onFriendsClick: (() -> Unit)? = null
+    onFriendsClick: (() -> Unit)? = null,
+    onCommunityClick: (() -> Unit)? = null
 ) {
     var isOpen by remember { mutableStateOf(false) }
     val menuWidth = 220.dp
@@ -34,7 +35,7 @@ fun AnimatedSideMenu(
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Fondo oscuro cuando el menú está abierto
+        // Fondo semitransparente al abrir el menú
         if (isOpen) {
             Box(
                 modifier = Modifier
@@ -44,7 +45,7 @@ fun AnimatedSideMenu(
             )
         }
 
-        // Panel lateral animado
+        // Panel lateral
         Box(
             modifier = Modifier
                 .fillMaxHeight()
@@ -70,16 +71,19 @@ fun AnimatedSideMenu(
                         isOpen = false
                         onGamesClick?.invoke()
                     }
-                    MenuItem("Stores")
                     MenuItem("Amigos") {
                         isOpen = false
                         onFriendsClick?.invoke()
+                    }
+                    MenuItem("Comunidad") { // 💬 Nuevo ítem
+                        isOpen = false
+                        onCommunityClick?.invoke()
                     }
                 }
             }
         }
 
-        // Botón hamburguesa / cerrar
+        // Botón hamburguesa
         IconButton(
             onClick = { isOpen = !isOpen },
             modifier = Modifier

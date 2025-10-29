@@ -14,6 +14,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.appplaypulse_grupo4.database.DatabaseHelper
 import com.example.appplaypulse_grupo4.ui.components.AnimatedSideMenu
 import com.example.appplaypulse_grupo4.ui.screens.FriendsMockupScreen
+import com.example.appplaypulse_grupo4.ui.screens.SocialFeedScreen // ✅ agregado
 import com.example.appplaypulse_grupo4.ui.theme.AppPlayPulse_Grupo4Theme
 import com.example.appplaypulse_grupo4.ui.theme.GameManagerScreen
 import com.example.appplaypulse_grupo4.ui.theme.HomeScreen
@@ -37,43 +38,76 @@ class MainActivity : ComponentActivity() {
                 var showFriends by remember { mutableStateOf(false) }
                 var showGames by remember { mutableStateOf(false) }
 
+                // ✅ nuevo: estado para la comunidad
+                var showCommunity by remember { mutableStateOf(false) }
+
                 Scaffold { innerPadding ->
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(innerPadding)
                     ) {
-                        //  Pantalla principal
-                        if (!showFriends && !showGames) {
+                        // 🏠 Pantalla principal
+                        if (!showFriends && !showGames && !showCommunity) {
                             HomeScreen()
                         }
 
-                        //  Pantalla de juegos
+                        // 🎮 Pantalla de juegos
                         if (showGames) {
                             GameManagerScreen()
                         }
 
-                        //  Pantalla de amigos (a pantalla completa)
+                        // 👥 Pantalla de amigos
                         if (showFriends) {
                             FriendsMockupScreen(onClose = { showFriends = false })
                         }
 
-                        //  Menú lateral animado
+                        // 💬 ✅ NUEVO: Pantalla de comunidad (Social Feed)
+                        if (showCommunity) {
+                            SocialFeedScreen(
+                                onNavigateToHome = {
+                                    showCommunity = false
+                                    showFriends = false
+                                    showGames = false
+                                },
+                                onNavigateToGames = {
+                                    showGames = true
+                                    showCommunity = false
+                                    showFriends = false
+                                },
+                                onNavigateToFriends = {
+                                    showFriends = true
+                                    showCommunity = false
+                                    showGames = false
+                                }
+                            )
+                        }
+
+                        // 🎛️ Menú lateral animado
                         AnimatedSideMenu(
                             onHomeClick = {
                                 showFriends = false
                                 showGames = false
+                                showCommunity = false // ✅ agregado
                                 Toast.makeText(ctx, "Volviendo al inicio", Toast.LENGTH_SHORT).show()
                             },
                             onGamesClick = {
                                 showGames = true
                                 showFriends = false
+                                showCommunity = false // ✅ agregado
                                 Toast.makeText(ctx, "Abriendo Juegos", Toast.LENGTH_SHORT).show()
                             },
                             onFriendsClick = {
                                 showFriends = true
                                 showGames = false
+                                showCommunity = false // ✅ agregado
                                 Toast.makeText(ctx, "Abriendo Amigos", Toast.LENGTH_SHORT).show()
+                            },
+                            onCommunityClick = { // ✅ nuevo callback
+                                showCommunity = true
+                                showFriends = false
+                                showGames = false
+                                Toast.makeText(ctx, "Abriendo Comunidad", Toast.LENGTH_SHORT).show()
                             }
                         )
                     }
