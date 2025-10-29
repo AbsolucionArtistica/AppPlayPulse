@@ -45,6 +45,13 @@ fun HomeScreen() {
             gameImageRes = R.drawable.apex,
             hours = "3500 horas jugadas"
         ),
+        Friend(
+                name = "Eth3rn4l",
+        profileRes = R.drawable.agua,
+        gameName = "New World Aeternum",
+        gameImageRes = R.drawable.nw,
+        hours = "3200 horas jugadas"
+    )
     )
 
     val scrollState = rememberScrollState() //  Control del scroll

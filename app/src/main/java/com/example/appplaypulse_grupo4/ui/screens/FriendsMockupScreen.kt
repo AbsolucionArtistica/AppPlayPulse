@@ -87,7 +87,8 @@ fun AddFriendDialog(onDismiss: () -> Unit, onAddFriend: (Friend) -> Unit) {
     val friendDatabase = listOf(
         Friend("Nuggw", R.drawable.giphy),
         Friend("Raygimon21", R.drawable.agua),
-        Friend("Ferna_nda_k", R.drawable.elena)
+        Friend("Ferna_nda_k", R.drawable.elena),
+        Friend("Eth3rn4l", R.drawable.nw)
     )
 
     AlertDialog(

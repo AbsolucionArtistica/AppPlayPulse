@@ -75,6 +75,7 @@ fun AddGameDialog(onDismiss: () -> Unit, onAddGame: (Game) -> Unit) {
     val gameDatabase = listOf(
         Game("Apex Legends", R.drawable.apex),
         Game("Magic Arena", R.drawable.arena),
+        Game("New World Aeternum", R.drawable.nw),
         Game("Final Fantasy XIV", R.drawable.finalfantasy),
         Game("League of Legends", R.drawable.lol),
         Game("Minecraft", R.drawable.minecraft)
