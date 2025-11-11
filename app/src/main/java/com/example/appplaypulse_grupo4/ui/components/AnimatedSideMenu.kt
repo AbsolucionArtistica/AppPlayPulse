@@ -23,7 +23,8 @@ fun AnimatedSideMenu(
     onHomeClick: (() -> Unit)? = null,
     onGamesClick: (() -> Unit)? = null,
     onFriendsClick: (() -> Unit)? = null,
-    onCommunityClick: (() -> Unit)? = null
+    onCommunityClick: (() -> Unit)? = null, // 👈 COMA AQUÍ
+    onProfileClick: (() -> Unit)? = null,   // ✅ ahora compila
 ) {
     var isOpen by remember { mutableStateOf(false) }
     val menuWidth = 220.dp
@@ -75,9 +76,13 @@ fun AnimatedSideMenu(
                         isOpen = false
                         onFriendsClick?.invoke()
                     }
-                    MenuItem("Comunidad") { // 💬 Nuevo ítem
+                    MenuItem("Comunidad") {
                         isOpen = false
                         onCommunityClick?.invoke()
+                    }
+                    MenuItem("Perfil") {
+                        isOpen = false
+                        onProfileClick?.invoke()
                     }
                 }
             }
