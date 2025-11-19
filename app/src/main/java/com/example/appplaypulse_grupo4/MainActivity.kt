@@ -3,8 +3,10 @@ package com.example.appplaypulse_grupo4
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -26,6 +28,9 @@ import com.example.appplaypulse_grupo4.ui.screens.SocialFeedScreen
 import com.example.appplaypulse_grupo4.ui.theme.AppPlayPulse_Grupo4Theme
 import com.example.appplaypulse_grupo4.ui.theme.GameManagerScreen
 import com.example.appplaypulse_grupo4.ui.theme.HomeScreen
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 import com.viewmodel.MainViewModel
 
 class MainActivity : ComponentActivity() {
@@ -37,6 +42,11 @@ class MainActivity : ComponentActivity() {
         databaseHelper = DatabaseHelper(this)
 
         enableEdgeToEdge()
+
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestEmail()
+            .build()
+        val googleSignInClient = GoogleSignIn.getClient(this, gso)
 
         setContent {
             AppPlayPulse_Grupo4Theme {
@@ -52,6 +62,23 @@ class MainActivity : ComponentActivity() {
                 var showGames by remember { mutableStateOf(false) }
                 var showCommunity by remember { mutableStateOf(false) }
                 var showProfile by remember { mutableStateOf(false) }
+
+                val googleSignInLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.StartActivityForResult()
+                ) { result ->
+                    val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                    try {
+                        val account = task.getResult(ApiException::class.java)
+                        isAuthenticated = true
+                        showAuth = false
+                        showFriends = false; showGames = false; showCommunity = false; showProfile = false
+                        val emailOrName = account?.email ?: account?.displayName ?: ""
+                        val suffix = if (emailOrName.isNotBlank()) " ($emailOrName)" else ""
+                        Toast.makeText(ctx, "Sesion con Google$suffix", Toast.LENGTH_SHORT).show()
+                    } catch (e: ApiException) {
+                        Toast.makeText(ctx, "Error al iniciar con Google (${e.statusCode})", Toast.LENGTH_SHORT).show()
+                    }
+                }
 
                 Scaffold { innerPadding ->
                     Box(
@@ -73,11 +100,8 @@ class MainActivity : ComponentActivity() {
                                     showAuth = false
                                     showFriends = false; showGames = false; showCommunity = false; showProfile = false
                                 },
-                                onGoogleLoginSuccess = {
-                                    isAuthenticated = true
-                                    showAuth = false
-                                    showFriends = false; showGames = false; showCommunity = false; showProfile = false
-                                    Toast.makeText(ctx, "Sesion con Google", Toast.LENGTH_SHORT).show()
+                                onGoogleLogin = {
+                                    googleSignInLauncher.launch(googleSignInClient.signInIntent)
                                 }
                             )
                         } else {

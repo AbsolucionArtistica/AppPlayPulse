@@ -21,7 +21,7 @@ fun AuthScreen(
     onClose: (() -> Unit)? = null,
     onLoginSuccess: (() -> Unit)? = null,
     onRegisterSuccess: (() -> Unit)? = null,
-    onGoogleLoginSuccess: (() -> Unit)? = null,
+    onGoogleLogin: (() -> Unit)? = null,
 ) {
     var selectedTab by remember { mutableStateOf(0) } // 0 = Iniciar sesion, 1 = Registrarse
     val snackbarHostState = remember { SnackbarHostState() }
@@ -39,7 +39,7 @@ fun AuthScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // Pestañas
+            // Pestanas
             TabRow(selectedTabIndex = selectedTab) {
                 Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Iniciar sesion") })
                 Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Registrarse") })
@@ -57,9 +57,8 @@ fun AuthScreen(
                         }
                     },
                     onGoogleLogin = {
-                        scope.launch { snackbarHostState.showSnackbar("Inicio de sesion con Google") }
-                        // Si se desea otro flujo al usar Google, se puede reemplazar por onGoogleLoginSuccess
-                        onGoogleLoginSuccess?.invoke() ?: onLoginSuccess?.invoke()
+                        scope.launch { snackbarHostState.showSnackbar("Abriendo Google") }
+                        onGoogleLogin?.invoke()
                     }
                 )
                 1 -> RegisterForm(
