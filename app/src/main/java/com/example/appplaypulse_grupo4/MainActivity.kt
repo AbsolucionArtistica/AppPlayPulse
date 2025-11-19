@@ -5,9 +5,15 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -15,14 +21,12 @@ import com.example.appplaypulse_grupo4.database.DatabaseHelper
 import com.example.appplaypulse_grupo4.ui.components.AnimatedSideMenu
 import com.example.appplaypulse_grupo4.ui.screens.AuthScreen
 import com.example.appplaypulse_grupo4.ui.screens.FriendsMockupScreen
+import com.example.appplaypulse_grupo4.ui.screens.ProfileScreen
 import com.example.appplaypulse_grupo4.ui.screens.SocialFeedScreen
 import com.example.appplaypulse_grupo4.ui.theme.AppPlayPulse_Grupo4Theme
 import com.example.appplaypulse_grupo4.ui.theme.GameManagerScreen
 import com.example.appplaypulse_grupo4.ui.theme.HomeScreen
 import com.viewmodel.MainViewModel
-import androidx.compose.runtime.saveable.rememberSaveable
-import com.example.appplaypulse_grupo4.ui.screens.ProfileScreen
-
 
 class MainActivity : ComponentActivity() {
 
@@ -39,11 +43,11 @@ class MainActivity : ComponentActivity() {
                 val viewModel: MainViewModel = viewModel()
                 val ctx = LocalContext.current
 
-                // 🔐 Estado de autenticación
+                // Estado de autenticacion
                 var isAuthenticated by rememberSaveable { mutableStateOf(false) }
-                var showAuth by rememberSaveable { mutableStateOf(true) } // ← arranca mostrando Auth
+                var showAuth by rememberSaveable { mutableStateOf(true) }
 
-                // Estados de navegación interna (solo se usan cuando ya estás autenticado)
+                // Estados de navegacion interna (solo se usan cuando ya estas autenticado)
                 var showFriends by remember { mutableStateOf(false) }
                 var showGames by remember { mutableStateOf(false) }
                 var showCommunity by remember { mutableStateOf(false) }
@@ -55,95 +59,113 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                             .padding(innerPadding)
                     ) {
-                        // 🔐 Si NO está autenticado, siempre muestra AuthScreen
+                        // Si no esta autenticado, siempre muestra AuthScreen
                         if (!isAuthenticated || showAuth) {
                             AuthScreen(
-                                onClose = { /* opcional: puedes no permitir cerrar sin login */ },
+                                onClose = { },
                                 onLoginSuccess = {
                                     isAuthenticated = true
                                     showAuth = false
-                                    // opcional: reinicia vistas
-                                    showFriends = false; showGames = false; showCommunity = false
+                                    showFriends = false; showGames = false; showCommunity = false; showProfile = false
                                 },
                                 onRegisterSuccess = {
                                     isAuthenticated = true
                                     showAuth = false
-                                    showFriends = false; showGames = false; showCommunity = false
+                                    showFriends = false; showGames = false; showCommunity = false; showProfile = false
                                 }
                             )
                         } else {
-                            // 🏠 Inicio
-                            if (!showFriends && !showGames && !showCommunity) {
+                            // Inicio
+                            if (!showFriends && !showGames && !showCommunity && !showProfile) {
                                 HomeScreen()
                             }
 
-                            // 👥 Amigos
+                            // Amigos
                             if (showFriends) {
                                 FriendsMockupScreen(onClose = { showFriends = false })
                             }
 
-                            // 🎮 Juegos
+                            // Juegos
                             if (showGames) {
                                 GameManagerScreen()
                             }
+
+                            // Perfil
                             if (showProfile) {
                                 ProfileScreen(onClose = { showProfile = false })
                             }
 
-                            // 💬 Comunidad
+                            // Comunidad
                             if (showCommunity) {
                                 SocialFeedScreen(
                                     onNavigateToHome = {
                                         showCommunity = false
                                         showFriends = false
                                         showGames = false
+                                        showProfile = false
                                     },
                                     onNavigateToGames = {
                                         showGames = true
                                         showCommunity = false
                                         showFriends = false
+                                        showProfile = false
                                     },
                                     onNavigateToFriends = {
                                         showFriends = true
                                         showCommunity = false
                                         showGames = false
+                                        showProfile = false
                                     }
                                 )
                             }
 
-                            // 🎛️ Menú lateral animado (solo si estás autenticado)
+                            // Menu lateral animado (solo si estas autenticado)
                             AnimatedSideMenu(
                                 onHomeClick = {
                                     showFriends = false
                                     showGames = false
                                     showCommunity = false
+                                    showProfile = false
                                     Toast.makeText(ctx, "Volviendo al inicio", Toast.LENGTH_SHORT).show()
                                 },
                                 onGamesClick = {
                                     showGames = true
                                     showFriends = false
                                     showCommunity = false
+                                    showProfile = false
                                     Toast.makeText(ctx, "Abriendo Juegos", Toast.LENGTH_SHORT).show()
                                 },
                                 onFriendsClick = {
                                     showFriends = true
                                     showGames = false
                                     showCommunity = false
+                                    showProfile = false
                                     Toast.makeText(ctx, "Abriendo Amigos", Toast.LENGTH_SHORT).show()
                                 },
                                 onCommunityClick = {
                                     showCommunity = true
                                     showFriends = false
                                     showGames = false
+                                    showProfile = false
                                     Toast.makeText(ctx, "Abriendo Comunidad", Toast.LENGTH_SHORT).show()
 
                                 },
-                                onProfileClick = { // ✅ NUEVO
+                                onProfileClick = {
                                     showProfile = true
                                     showFriends = false
                                     showGames = false
                                     showCommunity = false
                                     Toast.makeText(ctx, "Abriendo Perfil", Toast.LENGTH_SHORT).show()
+                                },
+                                onLogoutClick = {
+                                    viewModel.logout()
+                                    isAuthenticated = false
+                                    showAuth = true
+                                    showFriends = false
+                                    showGames = false
+                                    showCommunity = false
+                                    showProfile = false
+                                    Toast.makeText(ctx, "Sesion cerrada", Toast.LENGTH_SHORT).show()
                                 },
                             )
                         }
