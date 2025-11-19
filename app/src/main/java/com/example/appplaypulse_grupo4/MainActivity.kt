@@ -72,6 +72,12 @@ class MainActivity : ComponentActivity() {
                                     isAuthenticated = true
                                     showAuth = false
                                     showFriends = false; showGames = false; showCommunity = false; showProfile = false
+                                },
+                                onGoogleLoginSuccess = {
+                                    isAuthenticated = true
+                                    showAuth = false
+                                    showFriends = false; showGames = false; showCommunity = false; showProfile = false
+                                    Toast.makeText(ctx, "Sesion con Google", Toast.LENGTH_SHORT).show()
                                 }
                             )
                         } else {

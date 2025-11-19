@@ -20,14 +20,15 @@ import androidx.compose.foundation.rememberScrollState
 fun AuthScreen(
     onClose: (() -> Unit)? = null,
     onLoginSuccess: (() -> Unit)? = null,
-    onRegisterSuccess: (() -> Unit)? = null
+    onRegisterSuccess: (() -> Unit)? = null,
+    onGoogleLoginSuccess: (() -> Unit)? = null,
 ) {
-    var selectedTab by remember { mutableStateOf(0) } // 0 = Iniciar sesión, 1 = Registrarse
+    var selectedTab by remember { mutableStateOf(0) } // 0 = Iniciar sesion, 1 = Registrarse
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope() // ✅ para lanzar snackbars desde callbacks
+    val scope = rememberCoroutineScope() // para lanzar snackbars desde callbacks
 
     Scaffold(
-        topBar = { TopNavBar(if (selectedTab == 0) "Iniciar sesión" else "Registrarse") },
+        topBar = { TopNavBar(if (selectedTab == 0) "Iniciar sesion" else "Registrarse") },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Column(
@@ -40,20 +41,25 @@ fun AuthScreen(
 
             // Pestañas
             TabRow(selectedTabIndex = selectedTab) {
-                Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Iniciar sesión") })
+                Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Iniciar sesion") })
                 Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Registrarse") })
             }
 
             when (selectedTab) {
                 0 -> LoginForm(
-                    onForgot = { /* abre diálogo en el form */ },
+                    onForgot = { /* abre dialogo en el form */ },
                     onLogin = { userOrEmailOrPhone, password ->
                         if (userOrEmailOrPhone.isNotBlank() && password.isNotBlank()) {
-                            scope.launch { snackbarHostState.showSnackbar("¡Inicio de sesión exitoso!") } // ✅
+                            scope.launch { snackbarHostState.showSnackbar("Inicio de sesion exitoso!") }
                             onLoginSuccess?.invoke()
                         } else {
-                            scope.launch { snackbarHostState.showSnackbar("Completa usuario/correo/teléfono y contraseña") } // ✅
+                            scope.launch { snackbarHostState.showSnackbar("Completa usuario/correo/telefono y contrasena") }
                         }
+                    },
+                    onGoogleLogin = {
+                        scope.launch { snackbarHostState.showSnackbar("Inicio de sesion con Google") }
+                        // Si se desea otro flujo al usar Google, se puede reemplazar por onGoogleLoginSuccess
+                        onGoogleLoginSuccess?.invoke() ?: onLoginSuccess?.invoke()
                     }
                 )
                 1 -> RegisterForm(
@@ -62,10 +68,10 @@ fun AuthScreen(
                             nombre, apellido, edad, correo, telefono, username, password
                         )
                         if (errors.isEmpty()) {
-                            scope.launch { snackbarHostState.showSnackbar("¡Registro exitoso!") } // ✅
+                            scope.launch { snackbarHostState.showSnackbar("Registro exitoso!") }
                             onRegisterSuccess?.invoke()
                         } else {
-                            scope.launch { snackbarHostState.showSnackbar(errors.first()) } // ✅
+                            scope.launch { snackbarHostState.showSnackbar(errors.first()) }
                         }
                     }
                 )
@@ -79,9 +85,10 @@ fun AuthScreen(
 @Composable
 private fun LoginForm(
     onForgot: () -> Unit,
-    onLogin: (String, String) -> Unit
+    onLogin: (String, String) -> Unit,
+    onGoogleLogin: (() -> Unit)? = null,
 ) {
-    var userField by remember { mutableStateOf("") } // usuario/correo/teléfono
+    var userField by remember { mutableStateOf("") } // usuario/correo/telefono
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var showForgotDialog by remember { mutableStateOf(false) }
@@ -92,14 +99,14 @@ private fun LoginForm(
         OutlinedTextField(
             value = userField,
             onValueChange = { userField = it },
-            label = { Text("Usuario, correo o teléfono") },
+            label = { Text("Usuario, correo o telefono") },
             modifier = Modifier.fillMaxWidth()
         )
 
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Contraseña") },
+            label = { Text("Contrasena") },
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
@@ -115,21 +122,29 @@ private fun LoginForm(
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextButton(onClick = { showForgotDialog = true }) {
-                Text("¿Olvidaste tu contraseña?")
+                Text("¿Olvidaste tu contrasena?")
             }
             Button(onClick = { onLogin(userField, password) }) {
                 Text("Ingresar")
             }
+        }
+
+        OutlinedButton(
+            onClick = { onGoogleLogin?.invoke() },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = onGoogleLogin != null
+        ) {
+            Text("Continuar con Google")
         }
     }
 
     if (showForgotDialog) {
         AlertDialog(
             onDismissRequest = { showForgotDialog = false },
-            title = { Text("Recuperar contraseña") },
+            title = { Text("Recuperar contrasena") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Ingresa tu correo o usuario para enviarte un enlace de recuperación.")
+                    Text("Ingresa tu correo o usuario para enviarte un enlace de recuperacion.")
                     OutlinedTextField(
                         value = forgotTarget,
                         onValueChange = { forgotTarget = it },
@@ -140,7 +155,7 @@ private fun LoginForm(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    // Aquí puedes integrar tu lógica real de recuperación
+                    // Aqui puedes integrar tu logica real de recuperacion
                     showForgotDialog = false
                 }) { Text("Enviar") }
             },
@@ -175,9 +190,9 @@ private fun RegisterForm(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scroll)      // ✅ scroll
-            .imePadding()                // ✅ sube con el teclado
-            .navigationBarsPadding()     // ✅ evita solaparse con barra
+            .verticalScroll(scroll)
+            .imePadding()
+            .navigationBarsPadding()
             .padding(bottom = 16.dp)
     ) {
         Row(
@@ -215,7 +230,7 @@ private fun RegisterForm(
         OutlinedTextField(
             value = telefono,
             onValueChange = { if (it.all { ch -> ch.isDigit() } && it.length <= 15) telefono = it },
-            label = { Text("Número de teléfono") },
+            label = { Text("Numero de telefono") },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -229,7 +244,7 @@ private fun RegisterForm(
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Contraseña") },
+            label = { Text("Contrasena") },
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
@@ -241,7 +256,7 @@ private fun RegisterForm(
                 if (!isPasswordValid && password.isNotEmpty()) {
                     Column { passwordErrors.forEach { Text("• $it") } }
                 } else {
-                    Text("Mín. 6 caracteres, mayúscula, minúscula y número")
+                    Text("Min. 6 caracteres, mayuscula, minuscula y numero")
                 }
             }
         )
@@ -281,18 +296,18 @@ private fun validateRegister(
     if (edad.isBlank()) errors += "Ingresa tu edad"
     else {
         val e = edad.toIntOrNull()
-        if (e == null) errors += "Edad inválida"
-        else if (e < 13) errors += "Debes tener al menos 13 años"
+        if (e == null) errors += "Edad invalida"
+        else if (e < 13) errors += "Debes tener al menos 13 anos"
     }
 
     if (!correo.matches(Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")))
-        errors += "Correo inválido"
+        errors += "Correo invalido"
 
-    if (!telefono.matches(Regex("^\\d{7,15}\$")))
-        errors += "Teléfono inválido (7 a 15 dígitos)"
+    if (!telefono.matches(Regex("^\\d{7,15}$")))
+        errors += "Telefono invalido (7 a 15 digitos)"
 
     if (username.length < 3)
-        errors += "Usuario muy corto (mín. 3)"
+        errors += "Usuario muy corto (min. 3)"
 
     errors += passwordValidationErrors(password)
 
@@ -302,8 +317,8 @@ private fun validateRegister(
 private fun passwordValidationErrors(password: String): List<String> {
     val errs = mutableListOf<String>()
     if (password.length < 6) errs += "Debe tener al menos 6 caracteres"
-    if (!password.any { it.isUpperCase() }) errs += "Debe incluir una mayúscula"
-    if (!password.any { it.isLowerCase() }) errs += "Debe incluir una minúscula"
-    if (!password.any { it.isDigit() }) errs += "Debe incluir un número"
+    if (!password.any { it.isUpperCase() }) errs += "Debe incluir una mayuscula"
+    if (!password.any { it.isLowerCase() }) errs += "Debe incluir una minuscula"
+    if (!password.any { it.isDigit() }) errs += "Debe incluir un numero"
     return errs
 }
