@@ -1,34 +1,39 @@
 package com.example.appplaypulse_grupo4.ui.screens
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.appplaypulse_grupo4.R
+import com.example.appplaypulse_grupo4.ui.theme.TopNavBar
 
-// Modelo del post
-data class Post(
-    val author: String,
-    val text: String,
-    val imageRes: Int,
-    val comments: MutableList<String> = mutableListOf(),
-    var likes: Int = 0
+// ==== Modelo de post de comunidad ====
+data class CommunityPost(
+    val id: Long,
+    val username: String,
+    val avatarRes: Int,
+    val content: String,
+    val location: String? = null,
+    val link: String? = null,
+    val hasFile: Boolean = false,
+    val imageRes: Int? = null,
+    val likes: Int = 0,
+    val likedByMe: Boolean = false,
+    val comments: Int = 0,
+    val replies: List<String> = emptyList()
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,82 +43,202 @@ fun SocialFeedScreen(
     onNavigateToGames: () -> Unit = {},
     onNavigateToFriends: () -> Unit = {}
 ) {
-    val postList = remember { mutableStateListOf<Post>() }
-    var newPostText by remember { mutableStateOf("") }
+    // ✅ Posts con algunos amigos precargados
+    val posts = remember {
+        mutableStateListOf(
+            CommunityPost(
+                id = 1L,
+                username = "Nuggw",
+                avatarRes = R.drawable.giphy,
+                content = "Por fin terminé raid en Final Fantasy XIV, 100% worth 😮‍💨",
+                location = "Limsa Lominsa (?)",
+                likes = 5,
+                comments = 2
+            ),
+            CommunityPost(
+                id = 2L,
+                username = "Raygimon21",
+                avatarRes = R.drawable.agua,
+                content = "¿Alguien se apunta a unas partidas de Magic Arena esta noche?",
+                link = "https://magic.wizards.com",
+                likes = 3,
+                comments = 1
+            ),
+            CommunityPost(
+                id = 3L,
+                username = "Ferna_nda_k",
+                avatarRes = R.drawable.elena,
+                content = "Otro día tryhardeando Apex Legends y aún no sale el 20 bomb. 😭",
+                imageRes = R.drawable.apex,
+                likes = 10,
+                comments = 4
+            )
+        )
+    }
+
+    // Campos del composer (para escribir un nuevo post)
+    var text by remember { mutableStateOf("") }
+    var location by remember { mutableStateOf("") }
+    var link by remember { mutableStateOf("") }
+    var attachFile by remember { mutableStateOf(false) }
+    var attachImage by remember { mutableStateOf(false) }
 
     Scaffold(
-        topBar = {
-            // 💙 Barra cyan idéntica a PlayPulse
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF3DD4E7)) // mismo color cyan
-                    .padding(vertical = 14.dp)
-            ) {
-                Text(
-                    text = "Comunidad",
-                    color = Color.White,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
-        }
+        topBar = { TopNavBar(title = "Comunidad") }
     ) { innerPadding ->
         Column(
             modifier = Modifier
-                .padding(innerPadding)
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(innerPadding)
         ) {
-            // 📝 Campo para nueva publicación
-            OutlinedTextField(
-                value = newPostText,
-                onValueChange = { newPostText = it },
-                label = { Text("Publica algo para la comunidad...") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = {
-                    if (newPostText.isNotBlank()) {
-                        postList.add(
-                            0,
-                            Post(
-                                author = "Tú",
-                                text = newPostText,
-                                imageRes = R.drawable.elena
-                            )
-                        )
-                        newPostText = ""
-                    }
-                },
-                modifier = Modifier.align(Alignment.End),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF3DD4E7)
-                )
+            // ==== Lista de posts ====
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text("Publicar", color = Color.White)
+                items(posts.reversed(), key = { it.id }) { post ->
+                    CommunityPostCard(
+                        post = post,
+                        onLikeClick = { clicked ->
+                            val index = posts.indexOfFirst { it.id == clicked.id }
+                            if (index != -1) {
+                                val current = posts[index]
+                                val newLiked = !current.likedByMe
+                                val newLikes = if (newLiked) current.likes + 1
+                                else (current.likes - 1).coerceAtLeast(0)
+                                posts[index] = current.copy(
+                                    likedByMe = newLiked,
+                                    likes = newLikes
+                                )
+                            }
+                        },
+                        onReplySubmit = { clicked, replyText ->
+                            if (replyText.isNotBlank()) {
+                                val index = posts.indexOfFirst { it.id == clicked.id }
+                                if (index != -1) {
+                                    val current = posts[index]
+                                    posts[index] = current.copy(
+                                        replies = current.replies + replyText,
+                                        comments = current.comments + 1
+                                    )
+                                }
+                            }
+                        }
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Divider()
 
-            // 📜 Lista de publicaciones
-            if (postList.isEmpty()) {
-                Text(
-                    "No hay publicaciones todavía. ¡Sé la primera en escribir algo!",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxSize()
+            // ==== Composer tipo X/Twitter ====
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.Top,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(postList) { post ->
-                        PostCard(post)
+                    // Avatar propio
+                    Image(
+                        painter = painterResource(id = R.drawable.elena),
+                        contentDescription = "Avatar",
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        OutlinedTextField(
+                            value = text,
+                            onValueChange = { text = it },
+                            placeholder = { Text("¿Qué está pasando?") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 56.dp),
+                            singleLine = false,
+                            maxLines = 4
+                        )
+
+                        // Línea con resumen de adjuntos
+                        if (location.isNotEmpty() || link.isNotEmpty() || attachFile || attachImage) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = buildString {
+                                    if (location.isNotEmpty()) append("📍 $location   ")
+                                    if (link.isNotEmpty()) append("🔗 Link agregado   ")
+                                    if (attachFile) append("📎 Archivo adjunto   ")
+                                    if (attachImage) append("🖼 Foto adjunta")
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconChip(text = "📍", active = location.isNotEmpty()) {
+                            location = if (location.isEmpty()) "Pudahuel, Santiago" else ""
+                        }
+                        IconChip(text = "🔗", active = link.isNotEmpty()) {
+                            link = if (link.isEmpty()) "https://www.example.com" else ""
+                        }
+                        IconChip(text = "📎", active = attachFile) {
+                            attachFile = !attachFile
+                        }
+                        IconChip(text = "🖼", active = attachImage) {
+                            attachImage = !attachImage
+                        }
+                    }
+
+                    val canPost = text.isNotBlank() ||
+                            location.isNotEmpty() ||
+                            link.isNotEmpty() ||
+                            attachFile || attachImage
+
+                    Button(
+                        onClick = {
+                            posts.add(
+                                CommunityPost(
+                                    id = System.currentTimeMillis(),
+                                    username = "Ferna_nda_k",
+                                    avatarRes = R.drawable.elena,
+                                    content = text,
+                                    location = location.ifBlank { null },
+                                    link = link.ifBlank { null },
+                                    hasFile = attachFile,
+                                    imageRes = if (attachImage) R.drawable.apex else null
+                                )
+                            )
+                            text = ""
+                            location = ""
+                            link = ""
+                            attachFile = false
+                            attachImage = false
+                        },
+                        enabled = canPost
+                    ) {
+                        Text("Postear")
                     }
                 }
             }
@@ -121,81 +246,183 @@ fun SocialFeedScreen(
     }
 }
 
-// 🎴 Tarjeta de publicación individual
+// ==== Chip de icono simple (emoji) ====
 @Composable
-fun PostCard(post: Post) {
-    var commentText by remember { mutableStateOf("") }
+private fun IconChip(text: String, active: Boolean, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(50),
+        color = if (active)
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+        else
+            MaterialTheme.colorScheme.surfaceVariant,
+        tonalElevation = 0.dp
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            fontSize = 18.sp
+        )
+    }
+}
+
+// ==== Tarjeta visual del post + like + responder ====
+@Composable
+fun CommunityPostCard(
+    post: CommunityPost,
+    onLikeClick: (CommunityPost) -> Unit,
+    onReplySubmit: (CommunityPost, String) -> Unit
+) {
+    var showReplyBox by remember { mutableStateOf(false) }
+    var replyText by remember { mutableStateOf("") }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            // 👤 Autor
+
+            // Header
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Image(
-                    painter = painterResource(id = post.imageRes),
-                    contentDescription = post.author,
+                    painter = painterResource(id = post.avatarRes),
+                    contentDescription = post.username,
                     modifier = Modifier
-                        .size(50.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                        .size(40.dp)
+                        .clip(CircleShape),
                     contentScale = ContentScale.Crop
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(post.author, style = MaterialTheme.typography.titleMedium)
+                Column {
+                    Text(
+                        text = post.username,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                    if (post.location != null) {
+                        Text(
+                            text = "📍 ${post.location}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            // Texto
+            if (post.content.isNotBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = post.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontSize = 14.sp
+                )
+            }
+
+            // Link
+            if (post.link != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = post.link,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            // Archivo
+            if (post.hasFile) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "📎 Archivo adjunto",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Imagen
+            post.imageRes?.let { img ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Image(
+                    painter = painterResource(id = img),
+                    contentDescription = "Imagen adjunta",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop
+                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-            Text(post.text, style = MaterialTheme.typography.bodyLarge)
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // ❤️ Likes
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { post.likes++ }) {
-                    Icon(
-                        imageVector = Icons.Default.Favorite,
-                        contentDescription = "Like",
-                        tint = Color(0xFF3DD4E7)
+            // Barra de acciones: Like + Responder
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = { onLikeClick(post) }) {
+                    Text(
+                        text = if (post.likedByMe) "❤ ${post.likes}" else "♡ ${post.likes}",
+                        fontSize = 13.sp
                     )
                 }
-                Text("${post.likes}")
-            }
 
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
-
-            // 💬 Comentarios
-            if (post.comments.isNotEmpty()) {
-                post.comments.forEach { comment ->
-                    Text("💬 $comment", style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = { showReplyBox = !showReplyBox }) {
+                    Text(
+                        text = "💬 Responder (${post.comments})",
+                        fontSize = 13.sp
+                    )
                 }
-                Spacer(modifier = Modifier.height(8.dp))
             }
 
-            // ✏️ Escribir comentario
-            OutlinedTextField(
-                value = commentText,
-                onValueChange = { commentText = it },
-                label = { Text("Comentar...") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Button(
-                onClick = {
-                    if (commentText.isNotBlank()) {
-                        post.comments.add(commentText)
-                        commentText = ""
-                    }
-                },
-                modifier = Modifier.align(Alignment.End),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF3DD4E7)
+            // Caja para responder
+            if (showReplyBox) {
+                OutlinedTextField(
+                    value = replyText,
+                    onValueChange = { replyText = it },
+                    placeholder = { Text("Escribe una respuesta...") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                    maxLines = 3
                 )
-            ) {
-                Text("Responder", color = Color.White)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = {
+                            onReplySubmit(post, replyText)
+                            replyText = ""
+                            showReplyBox = false
+                        },
+                        enabled = replyText.isNotBlank()
+                    ) {
+                        Text("Responder")
+                    }
+                }
+            }
+
+            // Lista de respuestas
+            if (post.replies.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp)
+                ) {
+                    post.replies.forEach { reply ->
+                        Text(
+                            text = "↪ $reply",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 2.dp)
+                        )
+                    }
+                }
             }
         }
     }
