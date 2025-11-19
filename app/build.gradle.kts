@@ -52,6 +52,8 @@ dependencies {
     implementation(libs.androidx.material3)
     // libphonenumber for robust phone parsing/normalization
     implementation("com.googlecode.libphonenumber:libphonenumber:8.13.18")
+    // Google Sign-In
+    implementation("com.google.android.gms:play-services-auth:21.3.0")
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     implementation("javax.inject:javax.inject:1")

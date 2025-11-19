@@ -1,30 +1,60 @@
 package com.example.appplaypulse_grupo4.ui.screens
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.appplaypulse_grupo4.ui.theme.TopNavBar
-import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen(
     onClose: (() -> Unit)? = null,
     onLoginSuccess: (() -> Unit)? = null,
-    onRegisterSuccess: (() -> Unit)? = null
+    onRegisterSuccess: (() -> Unit)? = null,
+    onGoogleAuth: (() -> Unit)? = null,
+    googleError: String? = null
 ) {
     var selectedTab by remember { mutableStateOf(0) } // 0 = Iniciar sesión, 1 = Registrarse
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope() // ✅ para lanzar snackbars desde callbacks
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(googleError) {
+        if (!googleError.isNullOrBlank()) {
+            snackbarHostState.showSnackbar(googleError)
+        }
+    }
 
     Scaffold(
         topBar = { TopNavBar(if (selectedTab == 0) "Iniciar sesión" else "Registrarse") },
@@ -49,12 +79,13 @@ fun AuthScreen(
                     onForgot = { /* abre diálogo en el form */ },
                     onLogin = { userOrEmailOrPhone, password ->
                         if (userOrEmailOrPhone.isNotBlank() && password.isNotBlank()) {
-                            scope.launch { snackbarHostState.showSnackbar("¡Inicio de sesión exitoso!") } // ✅
+                            scope.launch { snackbarHostState.showSnackbar("¡Inicio de sesión exitoso!") }
                             onLoginSuccess?.invoke()
                         } else {
-                            scope.launch { snackbarHostState.showSnackbar("Completa usuario/correo/teléfono y contraseña") } // ✅
+                            scope.launch { snackbarHostState.showSnackbar("Completa usuario/correo/teléfono y contraseña") }
                         }
-                    }
+                    },
+                    onGoogleAuth = onGoogleAuth
                 )
                 1 -> RegisterForm(
                     onRegister = { nombre, apellido, edad, correo, telefono, username, password ->
@@ -62,12 +93,13 @@ fun AuthScreen(
                             nombre, apellido, edad, correo, telefono, username, password
                         )
                         if (errors.isEmpty()) {
-                            scope.launch { snackbarHostState.showSnackbar("¡Registro exitoso!") } // ✅
+                            scope.launch { snackbarHostState.showSnackbar("¡Registro exitoso!") }
                             onRegisterSuccess?.invoke()
                         } else {
-                            scope.launch { snackbarHostState.showSnackbar(errors.first()) } // ✅
+                            scope.launch { snackbarHostState.showSnackbar(errors.first()) }
                         }
-                    }
+                    },
+                    onGoogleAuth = onGoogleAuth
                 )
             }
         }
@@ -79,7 +111,8 @@ fun AuthScreen(
 @Composable
 private fun LoginForm(
     onForgot: () -> Unit,
-    onLogin: (String, String) -> Unit
+    onLogin: (String, String) -> Unit,
+    onGoogleAuth: (() -> Unit)?
 ) {
     var userField by remember { mutableStateOf("") } // usuario/correo/teléfono
     var password by remember { mutableStateOf("") }
@@ -121,6 +154,14 @@ private fun LoginForm(
                 Text("Ingresar")
             }
         }
+
+        OutlinedButton(
+            onClick = { onGoogleAuth?.invoke() },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = onGoogleAuth != null
+        ) {
+            Text("Continuar con Google")
+        }
     }
 
     if (showForgotDialog) {
@@ -155,7 +196,8 @@ private fun LoginForm(
 
 @Composable
 private fun RegisterForm(
-    onRegister: (String, String, String, String, String, String, String) -> Unit
+    onRegister: (String, String, String, String, String, String, String) -> Unit,
+    onGoogleAuth: (() -> Unit)?
 ) {
     var nombre by remember { mutableStateOf("") }
     var apellido by remember { mutableStateOf("") }
@@ -175,9 +217,9 @@ private fun RegisterForm(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scroll)      // ✅ scroll
-            .imePadding()                // ✅ sube con el teclado
-            .navigationBarsPadding()     // ✅ evita solaparse con barra
+            .verticalScroll(scroll)      // scroll
+            .imePadding()                // sube con el teclado
+            .navigationBarsPadding()     // evita solaparse con barra
             .padding(bottom = 16.dp)
     ) {
         Row(
@@ -259,9 +301,14 @@ private fun RegisterForm(
             enabled = canRegister,
             modifier = Modifier.align(Alignment.End)
         ) { Text("Crear cuenta") }
+
+        OutlinedButton(
+            onClick = { onGoogleAuth?.invoke() },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = onGoogleAuth != null
+        ) { Text("Registrarte con Google") }
     }
 }
-
 
 /* -------------------- VALIDACIONES -------------------- */
 

@@ -4,6 +4,8 @@
 
     <!-- Permission to read contacts for importing friends -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <!-- Network access for Google Sign-In -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
