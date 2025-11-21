@@ -8,7 +8,9 @@ data class User(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val username: String,
+    val password: String,
     val email: String,
+    val profilePhotoUrl: String = "",
     val highScore: Int = 0,
     val level: Int = 1,
     val createdAt: Long = System.currentTimeMillis()
