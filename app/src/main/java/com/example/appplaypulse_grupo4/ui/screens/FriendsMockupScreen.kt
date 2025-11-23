@@ -1,113 +1,42 @@
 package com.example.appplaypulse_grupo4.ui.screens
 
-import android.content.Context
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringSetPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
-import com.example.appplaypulse_grupo4.R
+import com.example.appplaypulse_grupo4.database.entity.User
+import com.example.appplaypulse_grupo4.ui.theme.Friend // modelo usado en HomeScreen
 import com.example.appplaypulse_grupo4.ui.theme.TopNavBar
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
-
-// ⚙️ DataStore configurado en el mismo archivo
-val Context.friendDataStore by preferencesDataStore(name = "friends_store")
-
-class FriendRepository(private val context: Context) {
-    companion object {
-        private val FRIEND_KEY = stringSetPreferencesKey("friend_list")
-    }
-
-    // 🔄 Obtener amigos guardados
-    val friends: Flow<Set<String>> = context.friendDataStore.data.map { prefs: Preferences ->
-        prefs[FRIEND_KEY] ?: emptySet()
-    }
-
-    // 💾 Guardar nuevo amigo
-    suspend fun addFriend(friend: String) {
-        context.friendDataStore.edit { prefs ->
-            val current = prefs[FRIEND_KEY] ?: emptySet()
-            prefs[FRIEND_KEY] = current + friend
-        }
-    }
-
-    // ❌ Eliminar amigo
-    suspend fun removeFriend(friend: String) {
-        context.friendDataStore.edit { prefs ->
-            val current = prefs[FRIEND_KEY] ?: emptySet()
-            prefs[FRIEND_KEY] = current - friend
-        }
-    }
-}
-
-// 👥 Clase Friend (nombre + imagen + estado)
-data class Friend(
-    val name: String,
-    val profileRes: Int,
-    val isOnline: Boolean = listOf(true, false).random()
-)
-
-// 📚 Base simulada de amigos (puedes editarla libremente)
-val friendDatabase = listOf(
-    Friend("Nuggw", R.drawable.giphy),
-    Friend("Raygimon21", R.drawable.agua),
-    Friend("Ferna_nda_k", R.drawable.elena),
-    Friend("Eth3rn4l", R.drawable.nw)
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FriendsMockupScreen(onClose: () -> Unit) {
-    val context = LocalContext.current
-    val repo = remember { FriendRepository(context) }
-    val scope = rememberCoroutineScope()
-
-    // 🔄 Leer los amigos guardados
-    val savedFriends by repo.friends.collectAsState(initial = emptySet())
-
-    // 📋 Convertir los nombres a objetos Friend
-    val friendList = remember(savedFriends) {
-        savedFriends.mapNotNull { name ->
-            friendDatabase.find { it.name == name }
-        }.toMutableStateList()
-    }
-
+fun FriendsMockupScreen(
+    currentUsername: String?,
+    friends: List<Friend>,          // amigos ya guardados en BD para este usuario
+    suggestedUsers: List<User>,     // usuarios REALES que se pueden agregar
+    onClose: () -> Unit,
+    onAddFriendToDb: (User) -> Unit // al confirmar, se guarda en BD
+) {
     var showDialog by remember { mutableStateOf(false) }
-    val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(
-        topBar = { TopNavBar(title = "Amigos") },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        topBar = { TopNavBar(title = "Amigos") }
     ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // 📋 Lista de amigos guardados
-            FriendList(friendList) { friend ->
-                scope.launch {
-                    repo.removeFriend(friend.name)
-                }
-            }
+            // Lista visual de amigos (los que vienen de la BD)
+            FriendList(friendList = friends)
 
-            // ➕ Botón flotante para agregar
+            // Botón flotante para agregar
             FloatingActionButton(
                 onClick = { showDialog = true },
                 modifier = Modifier
@@ -118,78 +47,116 @@ fun FriendsMockupScreen(onClose: () -> Unit) {
                 Text("+", color = MaterialTheme.colorScheme.onPrimary)
             }
 
-            // 🪟 Diálogo para agregar amigos
+            // Diálogo para agregar amigos
             if (showDialog) {
                 AddFriendDialog(
+                    currentUsername = currentUsername,
+                    suggestedUsers = suggestedUsers,
                     onDismiss = { showDialog = false },
-                    onAddFriend = { newFriend ->
-                        scope.launch {
-                            repo.addFriend(newFriend.name)
-                        }
+                    onAddFriend = { user ->
+                        onAddFriendToDb(user)
                         showDialog = false
                     }
                 )
-            }
-
-            // ✅ Snackbar al agregar amigo
-            LaunchedEffect(friendList.size) {
-                if (friendList.isNotEmpty()) {
-                    val lastFriend = friendList.last()
-                    snackbarHostState.showSnackbar("Solicitud enviada a ${lastFriend.name}")
-                }
             }
         }
     }
 }
 
-// 🪟 Diálogo para buscar y agregar amigo
+/* ============= AVATAR CON INICIALES ============= */
+
 @Composable
-fun AddFriendDialog(onDismiss: () -> Unit, onAddFriend: (Friend) -> Unit) {
+fun InitialsAvatar(
+    name: String,
+    modifier: Modifier = Modifier,
+    size: Dp = 48.dp
+) {
+    val initials = remember(name) {
+        name.trim()
+            .split(" ", "_")
+            .filter { it.isNotEmpty() }
+            .take(2)
+            .map { it.first().uppercaseChar() }
+            .joinToString("")
+    }
+
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = initials,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+/* ============= DIÁLOGO: AGREGAR AMIGO ============= */
+
+@Composable
+fun AddFriendDialog(
+    currentUsername: String?,
+    suggestedUsers: List<User>,
+    onDismiss: () -> Unit,
+    onAddFriend: (User) -> Unit
+) {
     var searchQuery by remember { mutableStateOf("") }
-    var selectedFriend by remember { mutableStateOf<Friend?>(null) }
+    var selectedFriend by remember { mutableStateOf<User?>(null) }
+
+    // Filtrar usuarios sugeridos según lo que escribe
+    val filteredUsers by remember(searchQuery, suggestedUsers) {
+        mutableStateOf(
+            suggestedUsers
+                .filter { it.username != currentUsername } // nunca tú misma
+                .filter { it.username.contains(searchQuery, ignoreCase = true) }
+        )
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Agregar amigo") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { query ->
                         searchQuery = query
-                        selectedFriend = friendDatabase.find {
-                            it.name.contains(query, ignoreCase = true)
-                        }
+                        selectedFriend = filteredUsers.firstOrNull()
                     },
                     label = { Text("Buscar amigo por nombre") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                selectedFriend?.let { friend ->
+                selectedFriend?.let { user ->
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Image(
-                            painter = painterResource(id = friend.profileRes),
-                            contentDescription = friend.name,
-                            modifier = Modifier
-                                .size(100.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                            contentScale = ContentScale.Crop
+                        InitialsAvatar(
+                            name = user.username,
+                            size = 72.dp
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(friend.name, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            text = "@${user.username}",
+                            style = MaterialTheme.typography.titleMedium
+                        )
                     }
                 }
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { selectedFriend?.let { onAddFriend(it) } },
+                onClick = { selectedFriend?.let(onAddFriend) },
                 enabled = selectedFriend != null
-            ) { Text("Enviar solicitud") }
+            ) {
+                Text("Enviar solicitud")
+            }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancelar") }
@@ -197,9 +164,10 @@ fun AddFriendDialog(onDismiss: () -> Unit, onAddFriend: (Friend) -> Unit) {
     )
 }
 
-// 📋 Lista visual de amigos agregados
+/* ============= LISTA DE AMIGOS ============= */
+
 @Composable
-fun FriendList(friendList: List<Friend>, onRemoveFriend: (Friend) -> Unit) {
+fun FriendList(friendList: List<Friend>) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
@@ -222,14 +190,10 @@ fun FriendList(friendList: List<Friend>, onRemoveFriend: (Friend) -> Unit) {
                             .fillMaxWidth()
                             .padding(8.dp)
                     ) {
-                        Image(
-                            painter = painterResource(id = friend.profileRes),
-                            contentDescription = friend.name,
-                            modifier = Modifier
-                                .size(60.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                            contentScale = ContentScale.Crop
+                        // Avatar con iniciales
+                        InitialsAvatar(
+                            name = friend.name,
+                            size = 60.dp
                         )
 
                         Spacer(modifier = Modifier.width(12.dp))
@@ -237,21 +201,12 @@ fun FriendList(friendList: List<Friend>, onRemoveFriend: (Friend) -> Unit) {
                         Column {
                             Text(friend.name, style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                if (friend.isOnline) "🟢 En línea" else "⚫ Desconectado",
+                                "${friend.gameName} • ${friend.hours}",
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
 
                         Spacer(modifier = Modifier.weight(1f))
-
-                        // 🗑️ Botón eliminar (guarda el cambio)
-                        IconButton(onClick = { onRemoveFriend(friend) }) {
-                            Icon(
-                                imageVector = Icons.Filled.Delete,
-                                contentDescription = "Eliminar amigo",
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        }
                     }
                 }
             }

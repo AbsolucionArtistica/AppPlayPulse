@@ -1,6 +1,5 @@
 package com.example.appplaypulse_grupo4.ui.theme
 
-import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -15,48 +14,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringSetPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import com.example.appplaypulse_grupo4.R
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import com.example.appplaypulse_grupo4.database.AppDatabase
+import com.example.appplaypulse_grupo4.database.entity.UserGameEntity
+import com.example.appplaypulse_grupo4.ui.theme.TopNavBar
 import kotlinx.coroutines.launch
-import androidx.datastore.preferences.core.Preferences
-import kotlinx.coroutines.flow.first
 
-
-
-// ⚙️ DataStore dentro del mismo archivo
-// ⚙️ DataStore dentro del mismo archivo
-val Context.gameDataStore by preferencesDataStore(name = "games_store")
-
-class GameRepository(private val context: Context) {
-
-    companion object {
-        private val GAME_KEY = stringSetPreferencesKey("game_list")
-    }
-
-    // 📤 Obtener juegos guardados como flujo (Flow)
-    val games: Flow<Set<String>> = context.gameDataStore.data.map { prefs: Preferences ->
-        prefs[GAME_KEY] ?: emptySet()
-    }
-
-    // 💾 Agregar un nuevo juego
-    suspend fun addGame(game: String) {
-        context.gameDataStore.edit { prefs ->
-            val current = prefs[GAME_KEY] ?: emptySet()
-            prefs[GAME_KEY] = current + game // usamos el operador + para agregar un nuevo elemento al Set
-        }
-    }
-}
-
-
-// 🎮 Datos del juego
+// 🎮 Modelo simple de juego para elegir en el diálogo
 data class Game(val name: String, val imageRes: Int)
 
-// 🧱 Base de juegos simulada
+// 🧱 Base de juegos disponibles
 val gameDatabase = listOf(
     Game("Apex Legends", R.drawable.apex),
     Game("Magic Arena", R.drawable.arena),
@@ -68,34 +37,79 @@ val gameDatabase = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GameManagerScreen() {
+fun GameManager(
+    db: AppDatabase,
+    currentUserId: Long?,
+    onGameAdded: () -> Unit
+) {
     val context = LocalContext.current
-    val repo = remember { GameRepository(context) }
     val scope = rememberCoroutineScope()
 
-    // 🔄 Leer juegos guardados desde DataStore
-    val savedGames by repo.games.collectAsState(initial = emptySet())
+    var showDialog by remember { mutableStateOf(false) }
+    var userGames by remember { mutableStateOf<List<UserGameEntity>>(emptyList()) }
 
-    // 📋 Convertir nombres a objetos Game
-    val gameList = remember(savedGames) {
-        savedGames.mapNotNull { name ->
-            gameDatabase.find { it.name == name }
-        }.toMutableList()
+    // 🔄 Cada vez que cambie el usuario, recargamos sus juegos
+    LaunchedEffect(currentUserId) {
+        val uid = currentUserId
+        userGames = if (uid != null) {
+            db.userGameDao().getRecentGamesForUser(uid)
+        } else {
+            emptyList()
+        }
     }
 
-    var showDialog by remember { mutableStateOf(false) }
-
     Scaffold(
-        topBar = { TopNavBar(title = "PlayPulse") }
+        topBar = { TopNavBar(title = "Juegos") }
     ) { innerPadding ->
         Box(
-            modifier = Modifier
+            Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            GameListScreen(gameList)
 
-            // ➕ Botón flotante
+            // 📋 Lista de juegos del usuario
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Tus juegos",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                )
+
+                if (userGames.isEmpty()) {
+                    Text("Todavía no has agregado juegos.")
+                } else {
+                    userGames.forEach { ug ->
+                        val imgRes = context.resources.getIdentifier(
+                            ug.imageResName,   // 👈 ahora sí es el nombre del drawable
+                            "drawable",
+                            context.packageName
+                        ).takeIf { it != 0 } ?: R.drawable.apex
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Image(
+                                painter = painterResource(id = imgRes),
+                                contentDescription = ug.gameTitle,
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentScale = ContentScale.Crop
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(ug.gameTitle, style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+            }
+
+            // ➕ FAB para agregar juego
             FloatingActionButton(
                 onClick = { showDialog = true },
                 modifier = Modifier
@@ -114,9 +128,27 @@ fun GameManagerScreen() {
             if (showDialog) {
                 AddGameDialog(
                     onDismiss = { showDialog = false },
-                    onAddGame = { newGame ->
-                        scope.launch {
-                            repo.addGame(newGame.name) // 💾 Guarda el nombre del juego
+                    onAddGame = { selected ->
+                        val uid = currentUserId
+                        if (uid != null) {
+                            scope.launch {
+                                // 👇 Guardamos el NOMBRE del drawable, no el número
+                                val resName = context.resources.getResourceEntryName(selected.imageRes)
+
+                                db.userGameDao().insertUserGame(
+                                    UserGameEntity(
+                                        userId = uid,
+                                        gameTitle = selected.name,
+                                        imageResName = resName
+                                    )
+                                )
+
+                                // Recargamos lista local
+                                userGames = db.userGameDao().getRecentGamesForUser(uid)
+
+                                // Avisamos al MainActivity para actualizar el perfil
+                                onGameAdded()
+                            }
                         }
                         showDialog = false
                     }
@@ -126,42 +158,11 @@ fun GameManagerScreen() {
     }
 }
 
-// 🧾 Lista visual de juegos agregados
 @Composable
-fun GameListScreen(gameList: List<Game>) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Text("Tus juegos:", style = MaterialTheme.typography.titleMedium)
-
-        if (gameList.isEmpty()) {
-            Text("No hay juegos agregados aún.")
-        } else {
-            gameList.forEach { game ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        painter = painterResource(id = game.imageRes),
-                        contentDescription = game.name,
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentScale = ContentScale.Crop
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(game.name, style = MaterialTheme.typography.bodyLarge)
-                }
-            }
-        }
-    }
-}
-
-// 🪟 Cuadro para buscar/agregar juego
-@Composable
-fun AddGameDialog(onDismiss: () -> Unit, onAddGame: (Game) -> Unit) {
+fun AddGameDialog(
+    onDismiss: () -> Unit,
+    onAddGame: (Game) -> Unit
+) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedGame by remember { mutableStateOf<Game?>(null) }
 
@@ -182,7 +183,6 @@ fun AddGameDialog(onDismiss: () -> Unit, onAddGame: (Game) -> Unit) {
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // 👁️ Vista previa del juego encontrado
                 selectedGame?.let { game ->
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -208,7 +208,9 @@ fun AddGameDialog(onDismiss: () -> Unit, onAddGame: (Game) -> Unit) {
             TextButton(
                 onClick = { selectedGame?.let { onAddGame(it) } },
                 enabled = selectedGame != null
-            ) { Text("Agregar") }
+            ) {
+                Text("Agregar")
+            }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancelar") }

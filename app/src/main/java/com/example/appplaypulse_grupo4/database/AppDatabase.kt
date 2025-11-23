@@ -1,41 +1,34 @@
-package com.example.appplaypulse_grupo4.database
+    package com.example.appplaypulse_grupo4.database
 
-import androidx.room.Database
-import androidx.room.Room
-import androidx.room.RoomDatabase
-import androidx.room.TypeConverters
-import android.content.Context
-import com.example.appplaypulse_grupo4.database.dao.UserDao
-import com.example.appplaypulse_grupo4.database.entity.User
-import com.example.appplaypulse_grupo4.database.migrations.DatabaseMigrations
+    import androidx.room.Database
+    import androidx.room.RoomDatabase
+    import com.example.appplaypulse_grupo4.database.dao.UserDao
+    import com.example.appplaypulse_grupo4.database.dao.FriendDao
+    import com.example.appplaypulse_grupo4.database.dao.GameDao
+    import com.example.appplaypulse_grupo4.database.dao.UserGameDao
+    import com.example.appplaypulse_grupo4.database.dao.PostDao
+    import com.example.appplaypulse_grupo4.database.entity.User
+    import com.example.appplaypulse_grupo4.database.entity.FriendEntity
+    import com.example.appplaypulse_grupo4.database.entity.GameEntity
+    import com.example.appplaypulse_grupo4.database.entity.UserGameEntity
+    import com.example.appplaypulse_grupo4.database.entity.Post
+    @Database(
+        entities = [
+            User::class,
+            FriendEntity::class,
+            GameEntity::class,
+            UserGameEntity::class,
+            Post::class
+        ],
+        version = 3,               // 🔺 subimos a 2
+        exportSchema = false
+    )
+    abstract class AppDatabase : RoomDatabase() {
 
-@Database(
-    entities = [User::class],
-    version = 1,
-    exportSchema = false
-)
-@TypeConverters(Converters::class)
-abstract class AppDatabase : RoomDatabase() {
-    
-    abstract fun userDao(): UserDao
-    
-    companion object {
-        @Volatile
-        private var INSTANCE: AppDatabase? = null
-        
-        fun getDatabase(context: Context): AppDatabase {
-            return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    "app_database"
-                )
-                .addMigrations(*DatabaseMigrations.ALL_MIGRATIONS)
-                .fallbackToDestructiveMigration() // Remove this in production
-                .build()
-                INSTANCE = instance
-                instance
-            }
-        }
+        abstract fun userDao(): UserDao
+        abstract fun gameDao(): GameDao
+        abstract fun userGameDao(): UserGameDao
+        abstract fun friendDao(): FriendDao
+
+        abstract fun postDao(): PostDao   // 👈 NUEVO
     }
-}

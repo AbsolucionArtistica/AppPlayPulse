@@ -86,11 +86,7 @@ fun AnimatedSideMenu(
                         isOpen = false
                         onProfileClick?.invoke()
                     }
-                    Spacer(modifier = Modifier.weight(1f))
-                    MenuItem("Cerrar sesion") {
-                        isOpen = false
-                        onLogoutClick?.invoke()
-                    }
+
                 }
             }
         }
