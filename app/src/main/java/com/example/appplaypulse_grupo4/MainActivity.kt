@@ -18,7 +18,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.room.Room
+import com.example.appplaypulse_grupo4.api.backend.BackendClient
+import com.example.appplaypulse_grupo4.api.backend.RemoteBackendDataSource
 import com.example.appplaypulse_grupo4.database.AppDatabase
+import com.example.appplaypulse_grupo4.database.dto.FeedItem
 import com.example.appplaypulse_grupo4.database.entity.FriendEntity
 import com.example.appplaypulse_grupo4.database.entity.GameEntity
 import com.example.appplaypulse_grupo4.database.entity.User
@@ -38,6 +41,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import android.util.Log
 import kotlin.random.Random
 
 class MainActivity : ComponentActivity() {
@@ -49,6 +53,7 @@ class MainActivity : ComponentActivity() {
             AppPlayPulse_Grupo4Theme {
                 val ctx = LocalContext.current
                 val scope = rememberCoroutineScope()
+                val backendDataSource = remember { RemoteBackendDataSource(BackendClient.create()) }
 
                 // BD Room
                 val db = remember {
@@ -117,6 +122,7 @@ class MainActivity : ComponentActivity() {
                 var isAuthenticated by rememberSaveable { mutableStateOf(false) }
                 var currentUserName by rememberSaveable { mutableStateOf<String?>(null) }
                 var currentUserId by rememberSaveable { mutableStateOf<Long?>(null) }
+                var remoteUserId by rememberSaveable { mutableStateOf<String?>(null) }
 
                 // Datos de perfil para UI
                 var profileUsername by rememberSaveable { mutableStateOf<String?>(null) }
@@ -151,6 +157,22 @@ class MainActivity : ComponentActivity() {
 
                 // FEED de comunidad desde la BD
                 val feed by postRepo.getFeed().collectAsState(initial = emptyList())
+                var backendFeed by remember { mutableStateOf<List<FeedItem>>(emptyList()) }
+                var isSyncingFeed by remember { mutableStateOf(false) }
+
+                val syncBackendUser: suspend (User, String) -> Unit = { user, plainPassword ->
+                    val remote = backendDataSource.ensureUser(user, plainPassword)
+                    remote
+                        .onSuccess { remoteUserId = it.id }
+                        .onFailure { err ->
+                            Log.e("MainActivity", "No se pudo sincronizar usuario remoto", err)
+                            Toast.makeText(
+                                ctx,
+                                "No se pudo sincronizar con el servidor",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                }
 
                 // Cada vez que cambia el usuario recargar amigos, juegos recientes y sugerencias
                 LaunchedEffect(currentUserId) {
@@ -166,6 +188,26 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                LaunchedEffect(isAuthenticated) {
+                    if (isAuthenticated) {
+                        isSyncingFeed = true
+                        val result = backendDataSource.fetchFeed()
+                        result
+                            .onSuccess { backendFeed = it }
+                            .onFailure {
+                                Toast.makeText(
+                                    ctx,
+                                    "No se pudo sincronizar el feed remoto",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        isSyncingFeed = false
+                    } else {
+                        backendFeed = emptyList()
+                        remoteUserId = null
+                    }
+                }
+
                 Scaffold { innerPadding ->
                     Box(
                         modifier = Modifier
@@ -175,23 +217,26 @@ class MainActivity : ComponentActivity() {
                         if (!isAuthenticated) {
                             // LOGIN / REGISTRO
                             AuthScreen(
-                                onLogin = { field, password, onResult ->
-                                    scope.launch {
-                                        val result = userRepo.login(field, password)
-                                        result
-                                            .onSuccess { user ->
-                                                isAuthenticated = true
-                                                currentUserName = user.username
-                                                currentUserId = user.id
-                                                profileUsername = user.username
-                                                profileAvatarResName = null
-                                                profileAvatarUri = null
-                                                onResult(true, "Bienvenid@ ${user.username}")
-                                            }
-                                            .onFailure { ex ->
-                                                onResult(
-                                                    false,
-                                                    ex.message ?: "Usuario o contrasena incorrectos"
+                            onLogin = { field, password, onResult ->
+                                scope.launch {
+                                    val result = userRepo.login(field, password)
+                                    result
+                                        .onSuccess { user ->
+                                            isAuthenticated = true
+                                            currentUserName = user.username
+                                            currentUserId = user.id
+                                            profileUsername = user.username
+                                            profileAvatarResName = null
+                                            profileAvatarUri = null
+                                            syncBackendUser(user, password)
+                                            backendDataSource.fetchFeed()
+                                                .onSuccess { backendFeed = it }
+                                            onResult(true, "Bienvenid@ ${user.username}")
+                                        }
+                                        .onFailure { ex ->
+                                            onResult(
+                                                false,
+                                                ex.message ?: "Usuario o contrasena incorrectos"
                                                 )
                                             }
                                     }
@@ -213,14 +258,17 @@ class MainActivity : ComponentActivity() {
                                                 isAuthenticated = true
                                                 currentUserName = user.username
                                                 currentUserId = user.id
-                                                profileUsername = user.username
-                                                profileAvatarResName = null
-                                                profileAvatarUri = null
-                                                onResult(true, "Bienvenid@ ${user.username}")
-                                            }
-                                            .onFailure { ex ->
-                                                onResult(
-                                                    false,
+                                            profileUsername = user.username
+                                            profileAvatarResName = null
+                                            profileAvatarUri = null
+                                            syncBackendUser(user, password)
+                                            backendDataSource.fetchFeed()
+                                                .onSuccess { backendFeed = it }
+                                            onResult(true, "Bienvenid@ ${user.username}")
+                                        }
+                                        .onFailure { ex ->
+                                            onResult(
+                                                false,
                                                     ex.message ?: "Error al registrar usuario"
                                                 )
                                             }
@@ -252,14 +300,17 @@ class MainActivity : ComponentActivity() {
                                                 isAuthenticated = true
                                                 currentUserName = user.username
                                                 currentUserId = user.id
-                                                profileUsername = user.username
-                                                profileAvatarResName = null
-                                                profileAvatarUri = null
-                                                onResult(true, "Cuenta creada con Google: ${user.username}")
-                                            }
-                                            .onFailure { ex ->
-                                                onResult(
-                                                    false,
+                                            profileUsername = user.username
+                                            profileAvatarResName = null
+                                            profileAvatarUri = null
+                                            syncBackendUser(user, "GoogleTmp!1")
+                                            backendDataSource.fetchFeed()
+                                                .onSuccess { backendFeed = it }
+                                            onResult(true, "Cuenta creada con Google: ${user.username}")
+                                        }
+                                        .onFailure { ex ->
+                                            onResult(
+                                                false,
                                                     ex.message ?: "No se pudo crear la cuenta con Google"
                                                 )
                                             }
@@ -327,11 +378,40 @@ class MainActivity : ComponentActivity() {
                                 SocialFeedScreen(
                                     currentUsername = profileUsername ?: currentUserName ?: "",
                                     hasFriends = homeFriends.isNotEmpty(),
-                                    posts = feed,
+                                    posts = if (backendFeed.isNotEmpty()) backendFeed else feed,
                                     onPublishPost = { text, location, link, imageUri ->
                                         val uid = currentUserId
                                         if (uid != null && text.isNotBlank()) {
                                             scope.launch {
+                                                val remoteId = remoteUserId
+                                                if (remoteId != null) {
+                                                    backendDataSource.publishPost(
+                                                        remoteUserId = remoteId,
+                                                        username = profileUsername
+                                                            ?: currentUserName ?: "",
+                                                        content = text,
+                                                        location = location,
+                                                        link = link,
+                                                        imageUri = imageUri
+                                                    )
+                                                        .onSuccess { item ->
+                                                            backendFeed = listOf(item) + backendFeed
+                                                        }
+                                                        .onFailure {
+                                                            Toast.makeText(
+                                                                ctx,
+                                                                "No se pudo publicar en el servidor",
+                                                                Toast.LENGTH_SHORT
+                                                            ).show()
+                                                        }
+                                                } else {
+                                                    Toast.makeText(
+                                                        ctx,
+                                                        "Sin usuario remoto, vuelve a iniciar sesion",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
+
                                                 postRepo.addPost(
                                                     userId = uid,
                                                     content = text,
@@ -394,12 +474,15 @@ class MainActivity : ComponentActivity() {
                                         isAuthenticated = false
                                         currentUserId = null
                                         currentUserName = null
+                                        remoteUserId = null
                                         profileUsername = null
                                         profileAvatarResName = null
                                         profileAvatarUri = null
                                         homeFriends = emptyList()
                                         recentGames = emptyList()
                                         suggestedUsers = emptyList()
+                                        backendFeed = emptyList()
+                                        isSyncingFeed = false
                                         showProfile = false
                                         showFriends = false
                                         showGames = false
