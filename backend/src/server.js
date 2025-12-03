@@ -7,6 +7,7 @@ require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || "0.0.0.0";
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/appplaypulse";
 
 mongoose
@@ -324,6 +325,7 @@ app.post("/api/games", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`API escuchando en http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`API escuchando en http://${HOST}:${PORT}`);
+  console.log(`Acceso desde emulador Android: http://10.0.2.2:${PORT}`);
 });
