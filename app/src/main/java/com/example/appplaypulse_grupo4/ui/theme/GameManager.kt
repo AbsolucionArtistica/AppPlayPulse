@@ -91,7 +91,7 @@ fun GameManager(
                 }
             } else if (userGames.isEmpty()) {
                 Text(
-                    text = "Aún no has agregado juegos.\nUsa el botón + para añadir uno.",
+                    text = "Aun no has agregado juegos.\nUsa el boton + para anadir uno.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -102,8 +102,8 @@ fun GameManager(
                 ) {
                     items(userGames) { game ->
                         GameRow(
-                            gameTitle = game.gameTitle,
-                            imageResName = game.imageResName
+                            gameTitle = game.title,
+                            imageRes = game.imageRes
                         )
                     }
                 }
@@ -111,31 +111,27 @@ fun GameManager(
         }
     }
 
-    // Diálogo para agregar nuevo juego
-    if (showAddDialog && currentUserId != null) {
+    if (showAddDialog && remoteUserId != null) {
         var gameName by remember { mutableStateOf("") }
 
         AlertDialog(
-        onDismissRequest = { showAddDialog = false },
-        title = { Text("Agregar juego") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = gameName,
-                    onValueChange = { gameName = it },
-                    label = { Text("Nombre del juego") },
+            onDismissRequest = { showAddDialog = false },
+            title = { Text("Agregar juego") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = gameName,
+                        onValueChange = { gameName = it },
+                        label = { Text("Nombre del juego") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    // 🔍 Sugerencias de juegos debajo del campo
                     val suggestions = remember(gameName) {
                         if (gameName.isBlank()) {
                             emptyList()
                         } else {
-                            knownGames.filter {
-                                it.contains(gameName, ignoreCase = true)
-                            }
+                            knownGames.filter { it.contains(gameName, ignoreCase = true) }
                         }
                     }
 
@@ -175,7 +171,6 @@ fun GameManager(
                         } else {
                             scope.launch {
                                 val (finalTitle, imageResName) = mapGame(cleanName)
-
                                 val rid = remoteUserId
                                 if (rid != null) {
                                     backendDataSource.addGame(
@@ -196,8 +191,6 @@ fun GameManager(
                                             }
                                     }
                                 }
-
-                                // Actualizar "Jugado recientemente"
                                 onGameAdded()
                             }
                             showAddDialog = false
@@ -219,15 +212,8 @@ fun GameManager(
 @Composable
 private fun GameRow(
     gameTitle: String,
-    imageResName: String
+    imageRes: Int
 ) {
-    val ctx = LocalContext.current
-    val imageId = ctx.resources.getIdentifier(
-        imageResName,
-        "drawable",
-        ctx.packageName
-    ).takeIf { it != 0 } ?: R.drawable.apex // fallback genérico
-
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -240,7 +226,7 @@ private fun GameRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Image(
-                painter = painterResource(id = imageId),
+                painter = painterResource(id = imageRes),
                 contentDescription = gameTitle,
                 modifier = Modifier.size(56.dp),
                 contentScale = ContentScale.Crop
@@ -261,9 +247,6 @@ private fun GameRow(
     }
 }
 
-/* ========= SUGERENCIAS Y MAPEO ========= */
-
-// Juegos conocidos para sugerir debajo del TextField
 private val knownGames = listOf(
     "Apex Legends",
     "Final Fantasy XIV",
@@ -273,34 +256,15 @@ private val knownGames = listOf(
     "New World Aeternum"
 )
 
-/**
- * Mapea lo que escribes a:
- *  - nombre bonito para mostrar
- *  - nombre del drawable para la imagen
- */
 fun mapGame(rawName: String): Pair<String, String> {
     val n = rawName.trim().lowercase()
-
     return when {
-        "apex" in n ->
-            "Apex Legends" to "apex"
-
-        "final" in n || "ffxiv" in n || "fantasy" in n ->
-            "Final Fantasy XIV" to "finalfantasy"
-
-        "league" in n || "lol" in n ->
-            "League of Legends" to "lol"
-
-        "arena" in n || "magic" in n ->
-            "Magic Arena" to "arena"
-
-        "minecraft" in n ->
-            "Minecraft" to "minecraft"
-
-        "new world" in n || "aeternum" in n ->
-            "New World Aeternum" to "nw"
-
-        else ->
-            rawName.trim() to "apex"   // por defecto, imagen genérica
+        "apex" in n -> "Apex Legends" to "apex"
+        "final" in n || "ffxiv" in n || "fantasy" in n -> "Final Fantasy XIV" to "finalfantasy"
+        "league" in n || "lol" in n -> "League of Legends" to "lol"
+        "arena" in n || "magic" in n -> "Magic Arena" to "arena"
+        "minecraft" in n -> "Minecraft" to "minecraft"
+        "new world" in n || "aeternum" in n -> "New World Aeternum" to "nw"
+        else -> rawName.trim() to "apex"
     }
 }
