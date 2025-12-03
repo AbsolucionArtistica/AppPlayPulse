@@ -4,6 +4,8 @@ import android.util.Log
 import com.example.appplaypulse_grupo4.database.dto.FeedItem
 import com.example.appplaypulse_grupo4.database.entity.User
 import java.time.Instant
+import com.example.appplaypulse_grupo4.ui.theme.Friend as UiFriend
+import com.example.appplaypulse_grupo4.ui.screens.RecentGame as UiRecentGame
 
 class RemoteBackendDataSource(
     private val api: BackendApi
@@ -76,6 +78,73 @@ class RemoteBackendDataSource(
         Log.e("RemoteBackend", "publishPost error", e)
         Result.failure(e)
     }
+
+    suspend fun fetchUsers(): Result<List<ApiUser>> = try {
+        val response = api.listUsers()
+        Result.success(response.items.orEmpty())
+    } catch (e: Exception) {
+        Log.e("RemoteBackend", "list users error", e)
+        Result.failure(e)
+    }
+
+    suspend fun fetchFriends(ownerUserId: String): Result<List<UiFriend>> = try {
+        val response = api.getFriends(ownerUserId)
+        val mapped = response.items.orEmpty().map { it.toUiFriend() }
+        Result.success(mapped)
+    } catch (e: Exception) {
+        Log.e("RemoteBackend", "fetchFriends error", e)
+        Result.failure(e)
+    }
+
+    suspend fun addFriend(
+        ownerUserId: String,
+        friendUserId: String?,
+        friendName: String,
+        avatarResName: String?
+    ): Result<UiFriend> = try {
+        val response = api.createFriend(
+            CreateFriendRequest(
+                ownerUserId = ownerUserId,
+                friendUserId = friendUserId,
+                friendName = friendName,
+                avatarResName = avatarResName,
+                isOnline = true
+            )
+        )
+        response.item?.let { Result.success(it.toUiFriend()) }
+            ?: Result.failure(Exception("No se pudo crear amigo remoto"))
+    } catch (e: Exception) {
+        Log.e("RemoteBackend", "addFriend error", e)
+        Result.failure(e)
+    }
+
+    suspend fun fetchGames(userId: String): Result<List<UiRecentGame>> = try {
+        val response = api.getGames(userId)
+        val mapped = response.items.orEmpty().map { it.toUiRecentGame() }
+        Result.success(mapped)
+    } catch (e: Exception) {
+        Log.e("RemoteBackend", "fetchGames error", e)
+        Result.failure(e)
+    }
+
+    suspend fun addGame(
+        userId: String,
+        gameTitle: String,
+        imageResName: String?
+    ): Result<UiRecentGame> = try {
+        val response = api.createGame(
+            CreateGameRequest(
+                userId = userId,
+                gameTitle = gameTitle,
+                imageResName = imageResName
+            )
+        )
+        response.item?.let { Result.success(it.toUiRecentGame()) }
+            ?: Result.failure(Exception("No se pudo crear juego remoto"))
+    } catch (e: Exception) {
+        Log.e("RemoteBackend", "addGame error", e)
+        Result.failure(e)
+    }
 }
 
 private fun ApiPostItem.toFeedItem(): FeedItem {
@@ -93,5 +162,24 @@ private fun ApiPostItem.toFeedItem(): FeedItem {
         link = link,
         imageUri = imageUri,
         createdAt = created ?: System.currentTimeMillis()
+    )
+}
+
+private fun ApiFriend.toUiFriend(): UiFriend {
+    return UiFriend(
+        name = friendName,
+        profileRes = 0,
+        gameName = "Jugando ahora",
+        gameImageRes = 0,
+        hours = "",
+        isOnline = isOnline == true,
+        avatarResName = avatarResName
+    )
+}
+
+private fun ApiGame.toUiRecentGame(): UiRecentGame {
+    return UiRecentGame(
+        title = gameTitle,
+        imageRes = 0
     )
 }

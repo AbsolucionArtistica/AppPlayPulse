@@ -1,6 +1,5 @@
 package com.example.appplaypulse_grupo4
 
-import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
@@ -17,31 +16,16 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.room.Room
 import com.example.appplaypulse_grupo4.api.backend.BackendClient
 import com.example.appplaypulse_grupo4.api.backend.RemoteBackendDataSource
-import com.example.appplaypulse_grupo4.database.AppDatabase
 import com.example.appplaypulse_grupo4.database.dto.FeedItem
-import com.example.appplaypulse_grupo4.database.entity.FriendEntity
-import com.example.appplaypulse_grupo4.database.entity.GameEntity
-import com.example.appplaypulse_grupo4.database.entity.User
-import com.example.appplaypulse_grupo4.database.entity.UserGameEntity
-import com.example.appplaypulse_grupo4.database.repository.PostRepository
-import com.example.appplaypulse_grupo4.database.repository.UserRepository
 import com.example.appplaypulse_grupo4.ui.components.AnimatedSideMenu
 import com.example.appplaypulse_grupo4.ui.screens.*
 import com.example.appplaypulse_grupo4.ui.theme.AppPlayPulse_Grupo4Theme
 import com.example.appplaypulse_grupo4.ui.theme.Friend
-import com.example.appplaypulse_grupo4.ui.screens.GameManager
 import com.example.appplaypulse_grupo4.ui.theme.HomeScreen
 import com.example.appplaypulse_grupo4.R
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.rememberCoroutineScope
-import android.util.Log
 import kotlin.random.Random
 
 class MainActivity : ComponentActivity() {
@@ -53,84 +37,29 @@ class MainActivity : ComponentActivity() {
             AppPlayPulse_Grupo4Theme {
                 val ctx = LocalContext.current
                 val scope = rememberCoroutineScope()
-                val backendDataSource = remember { RemoteBackendDataSource(BackendClient.create()) }
+                val backend = remember { RemoteBackendDataSource(BackendClient.create()) }
 
-                // BD Room
-                val db = remember {
-                    Room.databaseBuilder(
-                        ctx,
-                        AppDatabase::class.java,
-                        "playpulse.db"
-                    )
-                        .fallbackToDestructiveMigration()
-                        .build()
-                }
-
-                val userRepo = remember { UserRepository(db.userDao()) }
-                val postRepo = remember { PostRepository(db.postDao()) }
-
-                // Semillas basicas para sugerencias de amigos
-                LaunchedEffect(db) {
-                    withContext(Dispatchers.IO) {
-                        if (db.userDao().getUserCount() == 0) {
-                            val seedUsers = listOf(
-                                User(
-                                    nombre = "Ana",
-                                    apellido = "Lopez",
-                                    edad = 22,
-                                    email = "ana@example.com",
-                                    phone = "+56 9 11111111",
-                                    username = "AnaL",
-                                    password = "PassWord1"
-                                ),
-                                User(
-                                    nombre = "Bruno",
-                                    apellido = "Diaz",
-                                    edad = 28,
-                                    email = "bruno@example.com",
-                                    phone = "+56 9 22222222",
-                                    username = "BrunoD",
-                                    password = "ClaveFuerte2"
-                                ),
-                                User(
-                                    nombre = "Carla",
-                                    apellido = "Reyes",
-                                    edad = 19,
-                                    email = "carla@example.com",
-                                    phone = "+56 9 33333333",
-                                    username = "CarlaR",
-                                    password = "Segura123A"
-                                ),
-                                User(
-                                    nombre = "Diego",
-                                    apellido = "Soto",
-                                    edad = 24,
-                                    email = "diego@example.com",
-                                    phone = "+56 9 44444444",
-                                    username = "DiegoS",
-                                    password = "Contra456B"
-                                )
-                            )
-                            seedUsers.forEach { user ->
-                                db.userDao().insertUser(user)
-                            }
-                        }
-                    }
-                }
-
-                // Sesion
+                // Estado de sesion
                 var isAuthenticated by rememberSaveable { mutableStateOf(false) }
                 var currentUserName by rememberSaveable { mutableStateOf<String?>(null) }
-                var currentUserId by rememberSaveable { mutableStateOf<Long?>(null) }
                 var remoteUserId by rememberSaveable { mutableStateOf<String?>(null) }
 
-                // Datos de perfil para UI
+                // Perfil
                 var profileUsername by rememberSaveable { mutableStateOf<String?>(null) }
                 var profileAvatarResName by rememberSaveable { mutableStateOf<String?>(null) }
                 var profileAvatarUri by rememberSaveable { mutableStateOf<String?>(null) }
 
-                // Juegos recientes (perfil)
+                // Datos remotos
+                var backendFeed by remember { mutableStateOf<List<FeedItem>>(emptyList()) }
+                var homeFriends by remember { mutableStateOf<List<Friend>>(emptyList()) }
+                var suggestedUsers by remember { mutableStateOf<List<com.example.appplaypulse_grupo4.database.entity.User>>(emptyList()) }
                 var recentGames by remember { mutableStateOf<List<RecentGame>>(emptyList()) }
+
+                // Navegacion UI
+                var showFriends by remember { mutableStateOf(false) }
+                var showGames by remember { mutableStateOf(false) }
+                var showCommunity by remember { mutableStateOf(false) }
+                var showProfile by remember { mutableStateOf(false) }
 
                 // Foto desde galeria
                 val galleryLauncher =
@@ -143,68 +72,58 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                // Flags de pantallas
-                var showFriends by remember { mutableStateOf(false) }
-                var showGames by remember { mutableStateOf(false) }
-                var showCommunity by remember { mutableStateOf(false) }
-                var showProfile by remember { mutableStateOf(false) }
-
-                // Amigos que se muestran en el Home (por usuario)
-                var homeFriends by remember { mutableStateOf<List<Friend>>(emptyList()) }
-
-                // Usuarios sugeridos para agregar como amigos
-                var suggestedUsers by remember { mutableStateOf<List<User>>(emptyList()) }
-
-                // FEED de comunidad desde la BD
-                val feed by postRepo.getFeed().collectAsState(initial = emptyList())
-                var backendFeed by remember { mutableStateOf<List<FeedItem>>(emptyList()) }
-                var isSyncingFeed by remember { mutableStateOf(false) }
-
-                val syncBackendUser: suspend (User, String) -> Unit = { user, plainPassword ->
-                    val remote = backendDataSource.ensureUser(user, plainPassword)
-                    remote
-                        .onSuccess { remoteUserId = it.id }
-                        .onFailure { err ->
-                            Log.e("MainActivity", "No se pudo sincronizar usuario remoto", err)
-                            Toast.makeText(
-                                ctx,
-                                "No se pudo sincronizar con el servidor",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
+                // Sincronizar feed al autenticarse
+                LaunchedEffect(isAuthenticated) {
+                    if (isAuthenticated) {
+                        backend.fetchFeed()
+                            .onSuccess { backendFeed = it }
+                            .onFailure {
+                                Toast.makeText(ctx, "No se pudo cargar el feed remoto", Toast.LENGTH_SHORT).show()
+                            }
+                    } else {
+                        backendFeed = emptyList()
+                    }
                 }
 
-                // Cada vez que cambia el usuario recargar amigos, juegos recientes y sugerencias
-                LaunchedEffect(currentUserId) {
-                    val uid = currentUserId
-                    if (uid == null) {
+                // Sincronizar amigos, juegos y sugerencias
+                LaunchedEffect(remoteUserId) {
+                    val rid = remoteUserId
+                    if (rid == null) {
                         homeFriends = emptyList()
                         recentGames = emptyList()
                         suggestedUsers = emptyList()
                     } else {
-                        homeFriends = loadFriendsForHome(uid, db, ctx)
-                        recentGames = loadRecentGamesForProfile(uid, db, ctx)
-                        suggestedUsers = db.userDao().getSuggestedFriends(uid)
-                    }
-                }
-
-                LaunchedEffect(isAuthenticated) {
-                    if (isAuthenticated) {
-                        isSyncingFeed = true
-                        val result = backendDataSource.fetchFeed()
-                        result
-                            .onSuccess { backendFeed = it }
-                            .onFailure {
-                                Toast.makeText(
-                                    ctx,
-                                    "No se pudo sincronizar el feed remoto",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                        backend.fetchFriends(rid)
+                            .onSuccess { list ->
+                                homeFriends = list.map { f ->
+                                    f.copy(
+                                        profileRes = resolveAvatar(ctx, f.avatarResName),
+                                        gameImageRes = resolveGameImage(ctx, f.gameName),
+                                        hours = f.hours.ifBlank { "" }
+                                    )
+                                }
                             }
-                        isSyncingFeed = false
-                    } else {
-                        backendFeed = emptyList()
-                        remoteUserId = null
+                        backend.fetchGames(rid)
+                            .onSuccess { games ->
+                                recentGames = games.map { g ->
+                                    g.copy(imageRes = resolveGameImage(ctx, g.title))
+                                }
+                            }
+                        backend.fetchUsers()
+                            .onSuccess { users ->
+                                suggestedUsers = users.map { api ->
+                                    com.example.appplaypulse_grupo4.database.entity.User(
+                                        id = 0,
+                                        nombre = api.nombre,
+                                        apellido = api.apellido,
+                                        edad = api.edad,
+                                        email = api.email,
+                                        phone = api.phone,
+                                        username = api.username,
+                                        password = "remote"
+                                    )
+                                }
+                            }
                     }
                 }
 
@@ -215,36 +134,28 @@ class MainActivity : ComponentActivity() {
                             .padding(innerPadding)
                     ) {
                         if (!isAuthenticated) {
-                            // LOGIN / REGISTRO
                             AuthScreen(
-                            onLogin = { field, password, onResult ->
-                                scope.launch {
-                                    val result = userRepo.login(field, password)
-                                    result
-                                        .onSuccess { user ->
-                                            isAuthenticated = true
-                                            currentUserName = user.username
-                                            currentUserId = user.id
-                                            profileUsername = user.username
-                                            profileAvatarResName = null
-                                            profileAvatarUri = null
-                                            syncBackendUser(user, password)
-                                            backendDataSource.fetchFeed()
-                                                .onSuccess { backendFeed = it }
-                                            onResult(true, "Bienvenid@ ${user.username}")
-                                        }
-                                        .onFailure { ex ->
-                                            onResult(
-                                                false,
-                                                ex.message ?: "Usuario o contrasena incorrectos"
-                                                )
+                                onLogin = { field, password, onResult ->
+                                    scope.launch {
+                                        backend.login(field, password)
+                                            .onSuccess { user ->
+                                                isAuthenticated = true
+                                                remoteUserId = user.id
+                                                currentUserName = user.username
+                                                profileUsername = user.username
+                                                profileAvatarResName = null
+                                                profileAvatarUri = null
+                                                onResult(true, "Bienvenid@ ${user.username}")
+                                            }
+                                            .onFailure { ex ->
+                                                onResult(false, ex.message ?: "Usuario o contrasena incorrectos")
                                             }
                                     }
                                 },
                                 onRegister = { nombre, apellido, edadStr, correo, telefono, username, password, onResult ->
                                     scope.launch {
                                         val edad = edadStr.toIntOrNull() ?: 0
-                                        val result = userRepo.registerUser(
+                                        val user = com.example.appplaypulse_grupo4.database.entity.User(
                                             nombre = nombre,
                                             apellido = apellido,
                                             edad = edad,
@@ -253,24 +164,18 @@ class MainActivity : ComponentActivity() {
                                             username = username,
                                             password = password
                                         )
-                                        result
-                                            .onSuccess { user ->
+                                        backend.register(user, password)
+                                            .onSuccess { apiUser ->
                                                 isAuthenticated = true
-                                                currentUserName = user.username
-                                                currentUserId = user.id
-                                            profileUsername = user.username
-                                            profileAvatarResName = null
-                                            profileAvatarUri = null
-                                            syncBackendUser(user, password)
-                                            backendDataSource.fetchFeed()
-                                                .onSuccess { backendFeed = it }
-                                            onResult(true, "Bienvenid@ ${user.username}")
-                                        }
-                                        .onFailure { ex ->
-                                            onResult(
-                                                false,
-                                                    ex.message ?: "Error al registrar usuario"
-                                                )
+                                                remoteUserId = apiUser.id
+                                                currentUserName = apiUser.username
+                                                profileUsername = apiUser.username
+                                                profileAvatarResName = null
+                                                profileAvatarUri = null
+                                                onResult(true, "Bienvenid@ ${apiUser.username}")
+                                            }
+                                            .onFailure { ex ->
+                                                onResult(false, ex.message ?: "Error al registrar usuario")
                                             }
                                     }
                                 },
@@ -286,7 +191,7 @@ class MainActivity : ComponentActivity() {
                                         val usernameFinal = "$usernameSeed$uniqueSuffix"
                                         val phone = "+56 9 " + Random.nextInt(10_000_000, 99_999_999).toString()
 
-                                        val result = userRepo.registerUser(
+                                        val user = com.example.appplaypulse_grupo4.database.entity.User(
                                             nombre = first.ifBlank { "Jugador" },
                                             apellido = last,
                                             edad = 18,
@@ -295,32 +200,24 @@ class MainActivity : ComponentActivity() {
                                             username = usernameFinal,
                                             password = "GoogleTmp!1"
                                         )
-                                        result
-                                            .onSuccess { user ->
+
+                                        backend.register(user, "GoogleTmp!1")
+                                            .onSuccess { apiUser ->
                                                 isAuthenticated = true
-                                                currentUserName = user.username
-                                                currentUserId = user.id
-                                            profileUsername = user.username
-                                            profileAvatarResName = null
-                                            profileAvatarUri = null
-                                            syncBackendUser(user, "GoogleTmp!1")
-                                            backendDataSource.fetchFeed()
-                                                .onSuccess { backendFeed = it }
-                                            onResult(true, "Cuenta creada con Google: ${user.username}")
-                                        }
-                                        .onFailure { ex ->
-                                            onResult(
-                                                false,
-                                                    ex.message ?: "No se pudo crear la cuenta con Google"
-                                                )
+                                                remoteUserId = apiUser.id
+                                                currentUserName = apiUser.username
+                                                profileUsername = apiUser.username
+                                                profileAvatarResName = null
+                                                profileAvatarUri = null
+                                                onResult(true, "Cuenta creada con Google: ${apiUser.username}")
+                                            }
+                                            .onFailure { ex ->
+                                                onResult(false, ex.message ?: "No se pudo crear la cuenta con Google")
                                             }
                                     }
                                 }
                             )
                         } else {
-                            // APP AUTENTICADA
-
-                            // Home por defecto
                             if (!showFriends && !showGames && !showCommunity && !showProfile) {
                                 HomeScreen(
                                     username = profileUsername ?: currentUserName,
@@ -328,97 +225,88 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
 
-                            // Juegos (vinculado a BD por usuario)
                             if (showGames) {
                                 GameManager(
-                                    db = db,
-                                    currentUserId = currentUserId,
+                                    backendDataSource = backend,
+                                    remoteUserId = remoteUserId,
                                     onGameAdded = {
-                                        val uid = currentUserId
-                                        if (uid != null) {
+                                        val rid = remoteUserId
+                                        if (rid != null) {
                                             scope.launch {
-                                                recentGames = loadRecentGamesForProfile(uid, db, ctx)
+                                                backend.fetchGames(rid)
+                                                    .onSuccess { games ->
+                                                        recentGames = games.map { g ->
+                                                            g.copy(imageRes = resolveGameImage(ctx, g.title))
+                                                        }
+                                                    }
                                             }
                                         }
                                     }
                                 )
                             }
 
-                            // Amigos (usa la BD por usuario)
                             if (showFriends) {
                                 FriendsMockupScreen(
                                     currentUsername = profileUsername ?: currentUserName,
                                     friends = homeFriends,
                                     suggestedUsers = suggestedUsers,
-                                    onClose = {
-                                        showFriends = false
-                                    },
+                                    onClose = { showFriends = false },
                                     onAddFriendToDb = { friendUser ->
-                                        val uid = currentUserId
-                                        if (uid != null) {
+                                        val rid = remoteUserId
+                                        if (rid != null) {
                                             scope.launch {
-                                                db.friendDao().insertFriend(
-                                                    FriendEntity(
-                                                        ownerUserId = uid,
-                                                        name = friendUser.username,
-                                                        avatarResName = avatarResNameForUser(friendUser.username),
-                                                        isOnline = true
-                                                    )
-                                                )
-                                                homeFriends = loadFriendsForHome(uid, db, ctx)
-                                                suggestedUsers = db.userDao().getSuggestedFriends(uid)
+                                                backend.addFriend(
+                                                    ownerUserId = rid,
+                                                    friendUserId = null,
+                                                    friendName = friendUser.username,
+                                                    avatarResName = null
+                                                ).onSuccess {
+                                                    backend.fetchFriends(rid)
+                                                        .onSuccess { list ->
+                                                            homeFriends = list.map { f ->
+                                                                f.copy(
+                                                                    profileRes = resolveAvatar(ctx, f.avatarResName),
+                                                                    gameImageRes = resolveGameImage(ctx, f.gameName),
+                                                                    hours = f.hours.ifBlank { "" }
+                                                                )
+                                                            }
+                                                        }
+                                                }.onFailure {
+                                                    Toast.makeText(ctx, "No se pudo agregar amigo", Toast.LENGTH_SHORT).show()
+                                                }
                                             }
                                         }
                                     }
                                 )
                             }
 
-                            // Comunidad (tipo X/Twitter)
                             if (showCommunity) {
                                 SocialFeedScreen(
                                     currentUsername = profileUsername ?: currentUserName ?: "",
                                     hasFriends = homeFriends.isNotEmpty(),
-                                    posts = if (backendFeed.isNotEmpty()) backendFeed else feed,
+                                    posts = backendFeed,
                                     onPublishPost = { text, location, link, imageUri ->
-                                        val uid = currentUserId
-                                        if (uid != null && text.isNotBlank()) {
+                                        val rid = remoteUserId
+                                        if (rid != null && text.isNotBlank()) {
                                             scope.launch {
-                                                val remoteId = remoteUserId
-                                                if (remoteId != null) {
-                                                    backendDataSource.publishPost(
-                                                        remoteUserId = remoteId,
-                                                        username = profileUsername
-                                                            ?: currentUserName ?: "",
-                                                        content = text,
-                                                        location = location,
-                                                        link = link,
-                                                        imageUri = imageUri
-                                                    )
-                                                        .onSuccess { item ->
-                                                            backendFeed = listOf(item) + backendFeed
-                                                        }
-                                                        .onFailure {
-                                                            Toast.makeText(
-                                                                ctx,
-                                                                "No se pudo publicar en el servidor",
-                                                                Toast.LENGTH_SHORT
-                                                            ).show()
-                                                        }
-                                                } else {
-                                                    Toast.makeText(
-                                                        ctx,
-                                                        "Sin usuario remoto, vuelve a iniciar sesion",
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
-                                                }
-
-                                                postRepo.addPost(
-                                                    userId = uid,
+                                                backend.publishPost(
+                                                    remoteUserId = rid,
+                                                    username = profileUsername ?: currentUserName ?: "",
                                                     content = text,
                                                     location = location,
                                                     link = link,
                                                     imageUri = imageUri
                                                 )
+                                                    .onSuccess { item ->
+                                                        backendFeed = listOf(item) + backendFeed
+                                                    }
+                                                    .onFailure {
+                                                        Toast.makeText(
+                                                            ctx,
+                                                            "No se pudo publicar en el servidor",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    }
                                             }
                                         }
                                     },
@@ -443,7 +331,6 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
 
-                            // Perfil
                             if (showProfile) {
                                 val avatarResId: Int? =
                                     profileAvatarResName?.let { resName ->
@@ -456,8 +343,7 @@ class MainActivity : ComponentActivity() {
                                     }
 
                                 val profileData = ProfileData(
-                                    displayName = profileUsername ?: currentUserName
-                                    ?: "Nuevo jugador",
+                                    displayName = profileUsername ?: currentUserName ?: "Nuevo jugador",
                                     handle = "@${profileUsername ?: currentUserName ?: "usuario"}",
                                     avatarRes = avatarResId,
                                     avatarUri = profileAvatarUri,
@@ -472,7 +358,6 @@ class MainActivity : ComponentActivity() {
                                     onClose = { showProfile = false },
                                     onLogout = {
                                         isAuthenticated = false
-                                        currentUserId = null
                                         currentUserName = null
                                         remoteUserId = null
                                         profileUsername = null
@@ -482,40 +367,15 @@ class MainActivity : ComponentActivity() {
                                         recentGames = emptyList()
                                         suggestedUsers = emptyList()
                                         backendFeed = emptyList()
-                                        isSyncingFeed = false
                                         showProfile = false
                                         showFriends = false
                                         showGames = false
                                         showCommunity = false
-                                        Toast.makeText(ctx, "Sesion cerrada", Toast.LENGTH_SHORT)
-                                            .show()
+                                        Toast.makeText(ctx, "Sesion cerrada", Toast.LENGTH_SHORT).show()
                                     },
                                     data = profileData,
-                                    onChangeUsername = { newUser ->
-                                        val uid = currentUserId
-                                        if (uid != null) {
-                                            scope.launch {
-                                                val result = userRepo.updateUsername(uid, newUser)
-                                                result
-                                                    .onSuccess { updated ->
-                                                        profileUsername = updated.username
-                                                        currentUserName = updated.username
-                                                        Toast.makeText(
-                                                            ctx,
-                                                            "Nombre de usuario actualizado",
-                                                            Toast.LENGTH_SHORT
-                                                        ).show()
-                                                    }
-                                                    .onFailure { ex ->
-                                                        Toast.makeText(
-                                                            ctx,
-                                                            ex.message
-                                                                ?: "Error al actualizar nombre",
-                                                            Toast.LENGTH_SHORT
-                                                        ).show()
-                                                    }
-                                            }
-                                        }
+                                    onChangeUsername = {
+                                        Toast.makeText(ctx, "Cambiar username no esta soportado aun", Toast.LENGTH_SHORT).show()
                                     },
                                     onChangeAvatarFromGallery = {
                                         galleryLauncher.launch("image/*")
@@ -523,62 +383,41 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
 
-                            // Menu lateral
                             AnimatedSideMenu(
                                 onHomeClick = {
                                     showFriends = false
                                     showGames = false
                                     showCommunity = false
                                     showProfile = false
-                                    Toast.makeText(
-                                        ctx,
-                                        "Volviendo al inicio",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    Toast.makeText(ctx, "Volviendo al inicio", Toast.LENGTH_SHORT).show()
                                 },
                                 onGamesClick = {
                                     showGames = true
                                     showFriends = false
                                     showCommunity = false
                                     showProfile = false
-                                    Toast.makeText(
-                                        ctx,
-                                        "Abriendo Juegos",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    Toast.makeText(ctx, "Abriendo Juegos", Toast.LENGTH_SHORT).show()
                                 },
                                 onFriendsClick = {
                                     showFriends = true
                                     showGames = false
                                     showCommunity = false
                                     showProfile = false
-                                    Toast.makeText(
-                                        ctx,
-                                        "Abriendo Amigos",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    Toast.makeText(ctx, "Abriendo Amigos", Toast.LENGTH_SHORT).show()
                                 },
                                 onCommunityClick = {
                                     showCommunity = true
                                     showFriends = false
                                     showGames = false
                                     showProfile = false
-                                    Toast.makeText(
-                                        ctx,
-                                        "Abriendo Comunidad",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    Toast.makeText(ctx, "Abriendo Comunidad", Toast.LENGTH_SHORT).show()
                                 },
                                 onProfileClick = {
                                     showProfile = true
                                     showFriends = false
                                     showGames = false
                                     showCommunity = false
-                                    Toast.makeText(
-                                        ctx,
-                                        "Abriendo Perfil",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    Toast.makeText(ctx, "Abriendo Perfil", Toast.LENGTH_SHORT).show()
                                 }
                             )
                         }
@@ -589,81 +428,29 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/* ==================================
- * SEMILLAS Y HELPERS
- * ================================== */
-
-suspend fun loadFriendsForHome(
-    userId: Long,
-    db: AppDatabase,
-    ctx: Context
-): List<Friend> {
-    val friendDao = db.friendDao()
-    val friendEntities: List<FriendEntity> = friendDao.getFriendsForUser(userId)
-
-    return friendEntities.map { fe ->
-        val avatarRes = ctx.resources.getIdentifier(
-            fe.avatarResName,
-            "drawable",
-            ctx.packageName
-        ).takeIf { it != 0 } ?: R.drawable.elena
-
-        val (gameTitle, gameResName, hoursText) = when (fe.name) {
-            "Nuggw" -> Triple("FINAL FANTASY XIV", "finalfantasy", "100 horas jugadas")
-            "Raygimon21" -> Triple("Magic Arena", "arena", "160 horas jugadas")
-            "Ferna_nda_k" -> Triple("Apex Legends", "apex", "3500 horas jugadas")
-            "Eth3rn4l" -> Triple("New World Aeternum", "nw", "3200 horas jugadas")
-            else -> Triple("Jugando ahora", "lol", "-")
-        }
-
-        val gameImageRes = ctx.resources.getIdentifier(
-            gameResName,
-            "drawable",
-            ctx.packageName
-        ).takeIf { it != 0 } ?: R.drawable.apex
-
-        Friend(
-            name = fe.name,
-            profileRes = avatarRes,
-            gameName = gameTitle,
-            gameImageRes = gameImageRes,
-            hours = hoursText,
-            isOnline = fe.isOnline
-        )
-    }
+fun resolveAvatar(ctx: android.content.Context, avatarResName: String?): Int {
+    if (avatarResName.isNullOrBlank()) return R.drawable.elena
+    return ctx.resources.getIdentifier(
+        avatarResName,
+        "drawable",
+        ctx.packageName
+    ).takeIf { it != 0 } ?: R.drawable.elena
 }
 
-suspend fun loadRecentGamesForProfile(
-    userId: Long,
-    db: AppDatabase,
-    ctx: Context
-): List<RecentGame> {
-    val userGameDao = db.userGameDao()
-    val recent: List<UserGameEntity> = userGameDao.getRecentGamesForUser(userId)
-
-    return recent.map { ug ->
-        val imgRes = ctx.resources.getIdentifier(
-            ug.imageResName,
-            "drawable",
-            ctx.packageName
-        ).takeIf { it != 0 } ?: R.drawable.apex
-
-        RecentGame(
-            title = ug.gameTitle,
-            imageRes = imgRes
-        )
+fun resolveGameImage(ctx: android.content.Context, key: String?): Int {
+    val normalized = key?.lowercase().orEmpty()
+    val resName = when {
+        "apex" in normalized -> "apex"
+        "final" in normalized || "ffxiv" in normalized || "fantasy" in normalized -> "finalfantasy"
+        "league" in normalized || "lol" in normalized -> "lol"
+        "arena" in normalized || "magic" in normalized -> "arena"
+        "minecraft" in normalized -> "minecraft"
+        "new world" in normalized || "aeternum" in normalized -> "nw"
+        else -> "apex"
     }
+    return ctx.resources.getIdentifier(
+        resName,
+        "drawable",
+        ctx.packageName
+    ).takeIf { it != 0 } ?: R.drawable.apex
 }
-
-/**
- * Devuelve el nombre del recurso drawable asociado a un usuario.
- * Se guarda en la BD (FriendEntity.avatarResName).
- */
-fun avatarResNameForUser(username: String): String =
-    when (username) {
-        "Nuggw" -> "giphy"
-        "Raygimon21" -> "agua"
-        "Ferna_nda_k" -> "elena"
-        "Eth3rn4l" -> "nw"
-        else -> "elena"
-    }

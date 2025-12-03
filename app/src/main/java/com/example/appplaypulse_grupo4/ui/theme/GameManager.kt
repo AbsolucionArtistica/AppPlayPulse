@@ -17,30 +17,38 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.appplaypulse_grupo4.R
-import com.example.appplaypulse_grupo4.database.AppDatabase
-import com.example.appplaypulse_grupo4.database.entity.UserGameEntity
+import com.example.appplaypulse_grupo4.api.backend.RemoteBackendDataSource
 import com.example.appplaypulse_grupo4.ui.theme.TopNavBar
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameManager(
-    db: AppDatabase,
-    currentUserId: Long?,
+    backendDataSource: RemoteBackendDataSource,
+    remoteUserId: String?,
     onGameAdded: () -> Unit
 ) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    var userGames by remember { mutableStateOf<List<UserGameEntity>>(emptyList()) }
+    var userGames by remember { mutableStateOf<List<RecentGame>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
     var showAddDialog by remember { mutableStateOf(false) }
 
-    // Cargamos SOLO los juegos del usuario actual
-    LaunchedEffect(currentUserId) {
-        if (currentUserId != null) {
+    LaunchedEffect(remoteUserId) {
+        if (remoteUserId != null) {
             loading = true
-            userGames = db.userGameDao().getRecentGamesForUser(currentUserId)
+            backendDataSource.fetchGames(remoteUserId)
+                .onSuccess { games ->
+                    userGames = games.map { g ->
+                        val res = ctx.resources.getIdentifier(
+                            g.title,
+                            "drawable",
+                            ctx.packageName
+                        ).takeIf { it != 0 } ?: R.drawable.apex
+                        g.copy(imageRes = res)
+                    }
+                }
             loading = false
         } else {
             userGames = emptyList()
@@ -50,7 +58,7 @@ fun GameManager(
     Scaffold(
         topBar = { TopNavBar(title = "Juegos") },
         floatingActionButton = {
-            if (currentUserId != null) {
+            if (remoteUserId != null) {
                 FloatingActionButton(onClick = { showAddDialog = true }) {
                     Icon(
                         imageVector = Icons.Filled.Add,
@@ -108,14 +116,14 @@ fun GameManager(
         var gameName by remember { mutableStateOf("") }
 
         AlertDialog(
-            onDismissRequest = { showAddDialog = false },
-            title = { Text("Agregar juego") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = gameName,
-                        onValueChange = { gameName = it },
-                        label = { Text("Nombre del juego") },
+        onDismissRequest = { showAddDialog = false },
+        title = { Text("Agregar juego") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = gameName,
+                    onValueChange = { gameName = it },
+                    label = { Text("Nombre del juego") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -168,16 +176,26 @@ fun GameManager(
                             scope.launch {
                                 val (finalTitle, imageResName) = mapGame(cleanName)
 
-                                db.userGameDao().insertUserGame(
-                                    UserGameEntity(
-                                        userId = currentUserId,
+                                val rid = remoteUserId
+                                if (rid != null) {
+                                    backendDataSource.addGame(
+                                        userId = rid,
                                         gameTitle = finalTitle,
                                         imageResName = imageResName
-                                    )
-                                )
-
-                                userGames = db.userGameDao()
-                                    .getRecentGamesForUser(currentUserId)
+                                    ).onSuccess {
+                                        backendDataSource.fetchGames(rid)
+                                            .onSuccess { games ->
+                                                userGames = games.map { g ->
+                                                    val res = ctx.resources.getIdentifier(
+                                                        imageResName,
+                                                        "drawable",
+                                                        ctx.packageName
+                                                    ).takeIf { it != 0 } ?: R.drawable.apex
+                                                    g.copy(imageRes = res)
+                                                }
+                                            }
+                                    }
+                                }
 
                                 // Actualizar "Jugado recientemente"
                                 onGameAdded()

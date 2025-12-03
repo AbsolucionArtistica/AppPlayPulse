@@ -62,3 +62,67 @@ data class CreatePostRequest(
 data class CreatePostResponse(
     val item: ApiPostItem?
 )
+
+data class ApiFriend(
+    @SerializedName("id")
+    val id: String,
+    @SerializedName("ownerUserId")
+    val ownerUserId: String,
+    @SerializedName("friendUserId")
+    val friendUserId: String?,
+    @SerializedName("friendName")
+    val friendName: String,
+    @SerializedName("avatarResName")
+    val avatarResName: String?,
+    @SerializedName("isOnline")
+    val isOnline: Boolean?,
+    @SerializedName("friendSince")
+    val friendSince: String?
+)
+
+data class FriendsResponse(
+    val items: List<ApiFriend>?
+)
+
+data class CreateFriendRequest(
+    val ownerUserId: String,
+    val friendUserId: String?,
+    val friendName: String,
+    val avatarResName: String?,
+    val isOnline: Boolean?
+)
+
+data class CreateFriendResponse(
+    val item: ApiFriend?
+)
+
+data class ApiGame(
+    @SerializedName("id")
+    val id: String,
+    @SerializedName("userId")
+    val userId: String,
+    @SerializedName("gameTitle")
+    val gameTitle: String,
+    @SerializedName("imageResName")
+    val imageResName: String?,
+    @SerializedName("playedAt")
+    val playedAt: String?
+)
+
+data class GamesResponse(
+    val items: List<ApiGame>?
+)
+
+data class CreateGameRequest(
+    val userId: String,
+    val gameTitle: String,
+    val imageResName: String?
+)
+
+data class CreateGameResponse(
+    val item: ApiGame?
+)
+
+data class UsersListResponse(
+    val items: List<ApiUser>?
+)

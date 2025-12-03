@@ -10,5 +10,6 @@ data class Friend(
     val gameName: String,
     val gameImageRes: Int,
     val hours: String,
-    val isOnline: Boolean      // 👈 importante
+    val isOnline: Boolean,
+    val avatarResName: String? = null
 )
