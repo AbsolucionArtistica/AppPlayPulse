@@ -7,8 +7,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object BackendClient {
-    // Usa 10.0.2.2 para alcanzar localhost desde el emulador.
-    const val DEFAULT_BASE_URL = "http://56.125.177.46:3000/"
+    // Base del backend desplegado en EC2.
+    const val DEFAULT_BASE_URL = "http://56.124.84.174:4000/"
 
     fun create(baseUrl: String = DEFAULT_BASE_URL): BackendApi {
         val logging = HttpLoggingInterceptor().apply {
