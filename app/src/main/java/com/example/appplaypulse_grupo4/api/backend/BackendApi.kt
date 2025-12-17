@@ -2,6 +2,8 @@ package com.example.appplaypulse_grupo4.api.backend
 
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.DELETE
+import retrofit2.http.Path
 import retrofit2.http.POST
 import retrofit2.http.Query
 
@@ -35,4 +37,8 @@ interface BackendApi {
 
     @GET("/health")
     suspend fun health(): Map<String, Any>
+
+    // Admin: eliminar usuarios
+    @DELETE("/api/users/{id}")
+    suspend fun deleteUser(@Path("id") userId: String): DeleteUserResponse
 }

@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.example.appplaypulse_grupo4.api.backend.ApiUser
 import com.example.appplaypulse_grupo4.api.backend.BackendClient
 import com.example.appplaypulse_grupo4.api.backend.RemoteBackendDataSource
 import com.example.appplaypulse_grupo4.database.dto.FeedItem
@@ -43,6 +44,7 @@ class MainActivity : ComponentActivity() {
                 var isAuthenticated by rememberSaveable { mutableStateOf(false) }
                 var currentUserName by rememberSaveable { mutableStateOf<String?>(null) }
                 var remoteUserId by rememberSaveable { mutableStateOf<String?>(null) }
+                var isAdmin by rememberSaveable { mutableStateOf(false) }
 
                 // Perfil
                 var profileUsername by rememberSaveable { mutableStateOf<String?>(null) }
@@ -54,12 +56,14 @@ class MainActivity : ComponentActivity() {
                 var homeFriends by remember { mutableStateOf<List<Friend>>(emptyList()) }
                 var suggestedUsers by remember { mutableStateOf<List<com.example.appplaypulse_grupo4.database.entity.User>>(emptyList()) }
                 var recentGames by remember { mutableStateOf<List<RecentGame>>(emptyList()) }
+                var adminUsers by remember { mutableStateOf<List<ApiUser>>(emptyList()) }
 
                 // Navegacion UI
                 var showFriends by remember { mutableStateOf(false) }
                 var showGames by remember { mutableStateOf(false) }
                 var showCommunity by remember { mutableStateOf(false) }
                 var showProfile by remember { mutableStateOf(false) }
+                var showUserManagement by remember { mutableStateOf(false) }
 
                 // Foto desde galeria
                 val galleryLauncher =
@@ -92,6 +96,7 @@ class MainActivity : ComponentActivity() {
                         homeFriends = emptyList()
                         recentGames = emptyList()
                         suggestedUsers = emptyList()
+                        adminUsers = emptyList()
                     } else {
                         backend.fetchFriends(rid)
                             .onSuccess { list ->
@@ -123,7 +128,23 @@ class MainActivity : ComponentActivity() {
                                         password = "remote"
                                     )
                                 }
+                                if (isAdmin) {
+                                    adminUsers = users
+                                }
                             }
+                    }
+                }
+
+                // Sincronizar lista completa de usuarios para admin
+                LaunchedEffect(isAdmin) {
+                    if (isAdmin) {
+                        backend.fetchUsers()
+                            .onSuccess { adminUsers = it }
+                            .onFailure {
+                                adminUsers = emptyList()
+                            }
+                    } else {
+                        adminUsers = emptyList()
                     }
                 }
 
@@ -137,16 +158,17 @@ class MainActivity : ComponentActivity() {
                             AuthScreen(
                                 onLogin = { field, password, onResult ->
                                     scope.launch {
-                                        backend.login(field, password)
-                                            .onSuccess { user ->
-                                                isAuthenticated = true
-                                                remoteUserId = user.id
-                                                currentUserName = user.username
-                                                profileUsername = user.username
-                                                profileAvatarResName = null
-                                                profileAvatarUri = null
-                                                onResult(true, "Bienvenid@ ${user.username}")
-                                            }
+                                            backend.login(field, password)
+                                                .onSuccess { user ->
+                                                    isAuthenticated = true
+                                                    remoteUserId = user.id
+                                                    currentUserName = user.username
+                                                    isAdmin = user.username.equals("admin", ignoreCase = true)
+                                                    profileUsername = user.username
+                                                    profileAvatarResName = null
+                                                    profileAvatarUri = null
+                                                    onResult(true, "Bienvenid@ ${user.username}")
+                                                }
                                             .onFailure { ex ->
                                                 onResult(false, ex.message ?: "Usuario o contrasena incorrectos")
                                             }
@@ -164,16 +186,17 @@ class MainActivity : ComponentActivity() {
                                             username = username,
                                             password = password
                                         )
-                                        backend.register(user, password)
-                                            .onSuccess { apiUser ->
-                                                isAuthenticated = true
-                                                remoteUserId = apiUser.id
-                                                currentUserName = apiUser.username
-                                                profileUsername = apiUser.username
-                                                profileAvatarResName = null
-                                                profileAvatarUri = null
-                                                onResult(true, "Bienvenid@ ${apiUser.username}")
-                                            }
+                                            backend.register(user, password)
+                                                .onSuccess { apiUser ->
+                                                    isAuthenticated = true
+                                                    remoteUserId = apiUser.id
+                                                    currentUserName = apiUser.username
+                                                    isAdmin = apiUser.username.equals("admin", ignoreCase = true)
+                                                    profileUsername = apiUser.username
+                                                    profileAvatarResName = null
+                                                    profileAvatarUri = null
+                                                    onResult(true, "Bienvenid@ ${apiUser.username}")
+                                                }
                                             .onFailure { ex ->
                                                 onResult(false, ex.message ?: "Error al registrar usuario")
                                             }
@@ -201,16 +224,17 @@ class MainActivity : ComponentActivity() {
                                             password = "GoogleTmp!1"
                                         )
 
-                                        backend.register(user, "GoogleTmp!1")
-                                            .onSuccess { apiUser ->
-                                                isAuthenticated = true
-                                                remoteUserId = apiUser.id
-                                                currentUserName = apiUser.username
-                                                profileUsername = apiUser.username
-                                                profileAvatarResName = null
-                                                profileAvatarUri = null
-                                                onResult(true, "Cuenta creada con Google: ${apiUser.username}")
-                                            }
+                                            backend.register(user, "GoogleTmp!1")
+                                                .onSuccess { apiUser ->
+                                                    isAuthenticated = true
+                                                    remoteUserId = apiUser.id
+                                                    currentUserName = apiUser.username
+                                                    isAdmin = apiUser.username.equals("admin", ignoreCase = true)
+                                                    profileUsername = apiUser.username
+                                                    profileAvatarResName = null
+                                                    profileAvatarUri = null
+                                                    onResult(true, "Cuenta creada con Google: ${apiUser.username}")
+                                                }
                                             .onFailure { ex ->
                                                 onResult(false, ex.message ?: "No se pudo crear la cuenta con Google")
                                             }
@@ -218,7 +242,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         } else {
-                            if (!showFriends && !showGames && !showCommunity && !showProfile) {
+                            if (!showFriends && !showGames && !showCommunity && !showProfile && !showUserManagement) {
                                 HomeScreen(
                                     username = profileUsername ?: currentUserName,
                                     friends = homeFriends
@@ -242,6 +266,34 @@ class MainActivity : ComponentActivity() {
                                             }
                                         }
                                     }
+                                )
+                            }
+
+                            if (showUserManagement && isAdmin) {
+                                UserManagementScreen(
+                                    users = adminUsers,
+                                    onRefresh = {
+                                        scope.launch {
+                                            backend.fetchUsers()
+                                                .onSuccess { adminUsers = it }
+                                                .onFailure {
+                                                    Toast.makeText(ctx, "No se pudo actualizar usuarios", Toast.LENGTH_SHORT).show()
+                                                }
+                                        }
+                                    },
+                                    onDeleteUser = { user ->
+                                        scope.launch {
+                                            backend.deleteUser(user.id)
+                                                .onSuccess {
+                                                    adminUsers = adminUsers.filterNot { it.id == user.id }
+                                                    Toast.makeText(ctx, "Usuario eliminado", Toast.LENGTH_SHORT).show()
+                                                }
+                                                .onFailure {
+                                                    Toast.makeText(ctx, it.message ?: "Error al eliminar", Toast.LENGTH_SHORT).show()
+                                                }
+                                        }
+                                    },
+                                    onClose = { showUserManagement = false }
                                 )
                             }
 
@@ -360,17 +412,20 @@ class MainActivity : ComponentActivity() {
                                         isAuthenticated = false
                                         currentUserName = null
                                         remoteUserId = null
+                                        isAdmin = false
                                         profileUsername = null
                                         profileAvatarResName = null
                                         profileAvatarUri = null
                                         homeFriends = emptyList()
                                         recentGames = emptyList()
                                         suggestedUsers = emptyList()
+                                        adminUsers = emptyList()
                                         backendFeed = emptyList()
                                         showProfile = false
                                         showFriends = false
                                         showGames = false
                                         showCommunity = false
+                                        showUserManagement = false
                                         Toast.makeText(ctx, "Sesion cerrada", Toast.LENGTH_SHORT).show()
                                     },
                                     data = profileData,
@@ -389,6 +444,7 @@ class MainActivity : ComponentActivity() {
                                     showGames = false
                                     showCommunity = false
                                     showProfile = false
+                                    showUserManagement = false
                                     Toast.makeText(ctx, "Volviendo al inicio", Toast.LENGTH_SHORT).show()
                                 },
                                 onGamesClick = {
@@ -396,6 +452,7 @@ class MainActivity : ComponentActivity() {
                                     showFriends = false
                                     showCommunity = false
                                     showProfile = false
+                                    showUserManagement = false
                                     Toast.makeText(ctx, "Abriendo Juegos", Toast.LENGTH_SHORT).show()
                                 },
                                 onFriendsClick = {
@@ -403,6 +460,7 @@ class MainActivity : ComponentActivity() {
                                     showGames = false
                                     showCommunity = false
                                     showProfile = false
+                                    showUserManagement = false
                                     Toast.makeText(ctx, "Abriendo Amigos", Toast.LENGTH_SHORT).show()
                                 },
                                 onCommunityClick = {
@@ -410,6 +468,7 @@ class MainActivity : ComponentActivity() {
                                     showFriends = false
                                     showGames = false
                                     showProfile = false
+                                    showUserManagement = false
                                     Toast.makeText(ctx, "Abriendo Comunidad", Toast.LENGTH_SHORT).show()
                                 },
                                 onProfileClick = {
@@ -417,8 +476,22 @@ class MainActivity : ComponentActivity() {
                                     showFriends = false
                                     showGames = false
                                     showCommunity = false
+                                    showUserManagement = false
                                     Toast.makeText(ctx, "Abriendo Perfil", Toast.LENGTH_SHORT).show()
-                                }
+                                },
+                                onUserManagementClick = {
+                                    if (isAdmin) {
+                                        showUserManagement = true
+                                        showFriends = false
+                                        showGames = false
+                                        showCommunity = false
+                                        showProfile = false
+                                        Toast.makeText(ctx, "Gestion de usuarios", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(ctx, "Solo admin", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                showUserManagement = isAdmin
                             )
                         }
                     }

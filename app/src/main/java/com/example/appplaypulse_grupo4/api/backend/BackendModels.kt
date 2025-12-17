@@ -126,3 +126,8 @@ data class CreateGameResponse(
 data class UsersListResponse(
     val items: List<ApiUser>?
 )
+
+data class DeleteUserResponse(
+    val deleted: Boolean?,
+    val message: String? = null
+)

@@ -145,6 +145,18 @@ class RemoteBackendDataSource(
         Log.e("RemoteBackend", "addGame error", e)
         Result.failure(e)
     }
+
+    suspend fun deleteUser(userId: String): Result<Unit> = try {
+        val response = api.deleteUser(userId)
+        if (response.deleted == true) {
+            Result.success(Unit)
+        } else {
+            Result.failure(Exception(response.message ?: "No se pudo eliminar usuario"))
+        }
+    } catch (e: Exception) {
+        Log.e("RemoteBackend", "deleteUser error", e)
+        Result.failure(e)
+    }
 }
 
 private fun ApiPostItem.toFeedItem(): FeedItem {

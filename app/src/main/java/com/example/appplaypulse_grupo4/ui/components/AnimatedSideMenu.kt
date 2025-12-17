@@ -23,8 +23,10 @@ fun AnimatedSideMenu(
     onHomeClick: (() -> Unit)? = null,
     onGamesClick: (() -> Unit)? = null,
     onFriendsClick: (() -> Unit)? = null,
-    onCommunityClick: (() -> Unit)? = null, // 👈 COMA AQUÍ
-    onProfileClick: (() -> Unit)? = null,   // ✅ ahora compila
+    onCommunityClick: (() -> Unit)? = null,
+    onProfileClick: (() -> Unit)? = null,
+    onUserManagementClick: (() -> Unit)? = null,
+    showUserManagement: Boolean = false
 ) {
     var isOpen by remember { mutableStateOf(false) }
     val menuWidth = 220.dp
@@ -36,7 +38,7 @@ fun AnimatedSideMenu(
     )
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Fondo semitransparente al abrir el menú
+        // Fondo semitransparente al abrir el menu
         if (isOpen) {
             Box(
                 modifier = Modifier
@@ -80,6 +82,12 @@ fun AnimatedSideMenu(
                         isOpen = false
                         onCommunityClick?.invoke()
                     }
+                    if (showUserManagement) {
+                        MenuItem("Gestion de usuarios") {
+                            isOpen = false
+                            onUserManagementClick?.invoke()
+                        }
+                    }
                     MenuItem("Perfil") {
                         isOpen = false
                         onProfileClick?.invoke()
@@ -88,7 +96,7 @@ fun AnimatedSideMenu(
             }
         }
 
-        // Botón hamburguesa
+        // Boton hamburguesa
         IconButton(
             onClick = { isOpen = !isOpen },
             modifier = Modifier
